@@ -17,12 +17,17 @@
 	let videoEnabled = $state(true);
 
 	// ─── Remote Streams ──────────────────────────────────────────────────────
-	// Map of peerId -> MediaStream
-	let remoteStreams = $state<Record<string, MediaStream>>({});
+	// Map of peerId -> { stream: MediaStream, status: string }
+	let remoteStreams = $state(new Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>());
 
 	// We need a helper action to bind a MediaStream to a <video> element
 	function srcObject(node: HTMLVideoElement, stream: MediaStream | null) {
-		if (stream) node.srcObject = stream;
+		if (stream) {
+			node.srcObject = stream;
+			node.onloadedmetadata = () => {
+				node.play().catch(e => console.warn('Autoplay blocked:', e));
+			};
+		}
 		return {
 			update(newStream: MediaStream | null) {
 				if (node.srcObject !== newStream) {
@@ -43,7 +48,7 @@
 				video: { 
 					width: { ideal: 320 }, 
 					height: { ideal: 240 }, 
-					frameRate: { ideal: 15 },
+					frameRate: { ideal: 12 }, // Even lower for better mesh stability
 					facingMode: 'user' 
 				},
 				audio: {
@@ -62,9 +67,6 @@
 			if (localVideoNode) {
 				localVideoNode.srcObject = localStream;
 			}
-
-			// IMPORTANT: Immediately add stream so Trystero can negotiate with existing peers
-			addStream(localStream);
 		} catch (e) {
 			console.error('Failed to get user media:', e);
 			videoError = true;
@@ -72,16 +74,25 @@
 
 		// Handle incoming streams
 		const streamCleanup = onPeerStream((stream, peerId) => {
-			remoteStreams = { ...remoteStreams, [peerId]: stream };
+			remoteStreams.set(peerId, { stream, status: 'live' });
+			// Force a re-render by re-assigning the map (Svelte 5 Map reactivity can be tricky)
+			remoteStreams = new Map(remoteStreams);
 		});
 
 		const leaveCleanup = onPeerLeave((peerId) => {
-			const copy = { ...remoteStreams };
-			delete copy[peerId];
-			remoteStreams = copy;
+			remoteStreams.delete(peerId);
+			remoteStreams = new Map(remoteStreams);
 		});
 
-		cleanupFns.push(streamCleanup, leaveCleanup);
+		// P2P Handshake Reinforcement: 
+		// When a new peer joins, we poke our stream again to ensure they see us.
+		const joinCleanup = onPeerJoin((peerId) => {
+			if (localStream) {
+				addStream(localStream);
+			}
+		});
+
+		cleanupFns.push(streamCleanup, leaveCleanup, joinCleanup);
 	});
 
 	onDestroy(() => {
@@ -92,109 +103,34 @@
 		}
 	});
 
-	// Helper to determine if a player is asleep (for Cheese Thief phase 5)
+	// Helper to determine if a player is asleep (only during game night phase)
 	function isAsleep(peerId: string): boolean {
+		if (gameState.phase !== 'playing') return false;
 		const data = gameState.game.data as any;
 		if (!data || !data.sleepingPeers) return false;
 		return data.sleepingPeers.includes(peerId);
 	}
-
-	// ─── Local Controls ──────────────────────────────────────────────────────
-	function toggleAudio() {
-		if (!localStream) return;
-		audioEnabled = !audioEnabled;
-		// The $effect below handles applying this state to the tracks
-	}
-
-	function toggleVideo() {
-		if (!localStream) return;
-		videoEnabled = !videoEnabled;
-		localStream.getVideoTracks().forEach((track) => {
-			track.enabled = videoEnabled;
-		});
-	}
-
-	// Dynamic mute control for local stream (merges user choice + sleep state)
-	$effect(() => {
-		if (localStream) {
-			const forcedMute = isAsleep(selfId);
-			const finalAudioState = audioEnabled && !forcedMute;
-			localStream.getAudioTracks().forEach((track) => {
-				track.enabled = finalAudioState;
-			});
-		}
-	});
-
-	/** Export the stream for the parent to share on join */
-	export function getStream() {
-		return localStream;
-	}
-
-	const playerCount = $derived(Object.keys(remoteStreams).length + 1);
-	const minWidth = $derived(playerCount > 6 ? '70px' : (playerCount > 4 ? '100px' : '140px'));
-</script>
-
-{#if videoError}
-	<div class="video-error-hint card">
-		<p><strong>📹 Camera Issue:</strong> If you're on mobile, ensure you are NOT in an "In-App" browser (like Instagram/Facebook). Open the link in <strong>Safari</strong> or <strong>Chrome</strong> directly.</p>
-		<button class="btn-ghost" onclick={() => window.location.reload()}>Retry Camera</button>
-	</div>
-{/if}
-
-<div 
-	class="video-grid" 
-	class:is-playing={gameState.phase === 'playing'}
-	style="--min-video-width: {minWidth}"
->
-	<!-- Local Preview -->
-	<div class="video-container local" class:sleeping={isAsleep(selfId)}>
-		<video
-			bind:this={localVideoNode}
-			autoPlay
-			playsInline
-			muted
-			class="video-el"
-		></video>
-		
-		<div class="nametag">You {isAsleep(selfId) ? '💤' : ''}</div>
-		
-		<!-- Controls -->
-		<div class="local-controls">
-			<button 
-				class="media-btn" 
-				class:off={!audioEnabled} 
-				onclick={toggleAudio}
-				title="Toggle Microphone"
-			>
-				{audioEnabled ? '🎙️' : '🔇'}
-			</button>
-			<button 
-				class="media-btn" 
-				class:off={!videoEnabled} 
-				onclick={toggleVideo}
-				title="Toggle Camera"
-			>
-				{videoEnabled ? '📹' : '🚫'}
-			</button>
-		</div>
-	</div>
-
+...
 	<!-- Remote Peers -->
-	{#each Object.entries(remoteStreams) as [peerId, stream] (peerId)}
+	{#each Array.from(remoteStreams.entries()) as [peerId, data] (peerId)}
 		<div class="video-container" class:sleeping={isAsleep(peerId)}>
 			<video
-				use:srcObject={stream}
+				use:srcObject={data.stream}
 				autoPlay
 				playsInline
 				class="video-el"
 			></video>
+
+			{#if data.status === 'connecting'}
+				<div class="video-status">Connecting...</div>
+			{/if}
+
 			<div class="nametag">
 				{gameState.players[peerId]?.name || 'Unknown'}
 				{isAsleep(peerId) ? '💤' : ''}
 			</div>
 		</div>
 	{/each}
-</div>
 
 <style>
 	.video-grid {
