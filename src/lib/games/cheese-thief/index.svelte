@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameState, Action } from '$lib/engine/types';
+	import { fade, scale } from 'svelte/transition';
 	import type { CTData } from './reducer';
 	import { playDice, playShhh, playDing } from '$lib/engine/sounds';
 

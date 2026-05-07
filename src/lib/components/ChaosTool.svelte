@@ -3,6 +3,7 @@
 	import { gameState, applyAction } from '$lib/engine/stateStore';
 	import { broadcastStateSync } from '$lib/engine/peer';
 	import { getGame } from '$lib/games/registry';
+	import type { Action } from '$lib/engine/types';
 
 	let isVisible = $state(false);
 	let botCount = $state(0);
@@ -45,7 +46,7 @@
 			const botId = bots[Math.floor(Math.random() * bots.length)];
 
 			// Perform a random action based on the game
-			let action = null;
+			let action: Action | null = null;
 			if (state.game.id === 'herd-mentality') {
 				const data = state.game.data as any;
 				if (data.phase === 'answering' && !data.answers[botId]) {

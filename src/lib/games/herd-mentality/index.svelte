@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GameState, Action } from '$lib/engine/types';
+	import { fade } from 'svelte/transition';
 	import { getRandomPrompts, type HMData } from './reducer';
 	import { playPop, playDing } from '$lib/engine/sounds';
 

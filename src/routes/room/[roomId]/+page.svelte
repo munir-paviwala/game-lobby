@@ -11,7 +11,8 @@
 		onMessage,
 		onPeerJoin,
 		onPeerLeave,
-		sendAnnounce,
+		addStream,
+		broadcast,
 		sendWelcome,
 		broadcastStateSync,
 		sendAction
@@ -385,11 +386,11 @@
 						<button
 							class="btn-primary start-btn"
 							id="btn-start-game"
-							disabled={$playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) || !$gameState.game.id}
+							disabled={!$gameState.game.id || $playerList.length < (getGame($gameState.game.id!)?.minPlayers ?? 2)}
 							onclick={handleStartGame}
-							title={!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) ? `Need at least ${getGame($gameState.game.id)?.minPlayers} players` : 'Start the game!'}
+							title={!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id!)?.minPlayers ?? 2) ? `Need at least ${getGame($gameState.game.id!)?.minPlayers} players` : 'Start the game!'}
 						>
-							{!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) ? `Waiting for players… (${$playerList.length}/${getGame($gameState.game.id)?.minPlayers})` : 'Start Game →'}
+							{!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id!)?.minPlayers ?? 2) ? `Waiting for players… (${$playerList.length}/${getGame($gameState.game.id!)?.minPlayers})` : 'Start Game →'}
 						</button>
 					</section>
 				{:else}
@@ -407,7 +408,7 @@
 		{#if $isPlaying && $gameState.game.id}
 			<GameTable 
 				state={$gameState} 
-				{selfId} 
+				selfId={selfPeerId} 
 				{remoteStreams} 
 				{localStream}
 			>

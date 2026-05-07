@@ -78,7 +78,7 @@ export async function joinRoom(roomId: string): Promise<void> {
 			'wss://relay.snort.social'
 		];
 
-		const room = trysteroJoin({ appId: APP_ID, relays: stableRelays }, cleanId);
+		const room = trysteroJoin({ appId: APP_ID, relays: stableRelays } as any, cleanId);
 		currentRoom = room;
 		currentRoomId = cleanId;
 
