@@ -42,6 +42,7 @@ export type ActionType =
 	| 'HOST_SET_GAME'
 	| 'START_GAME'
 	| 'END_GAME'
+	| 'BACK_TO_LOBBY'
 	| 'ADD_POINTS'
 	| 'GAME_ACTION'; // game-specific sub-actions live in payload.type
 

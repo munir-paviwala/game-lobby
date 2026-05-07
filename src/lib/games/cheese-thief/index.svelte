@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameState, Action } from '$lib/engine/types';
 	import type { CTData } from './reducer';
+	import { playDice, playShhh, playDing } from '$lib/engine/sounds';
 
 	interface Props {
 		state: GameState;
@@ -19,7 +20,8 @@
 			cheeseStolenBy: null,
 			currentHour: 0,
 			sleepingPeers: [],
-			votes: {}
+			votes: {},
+			peekTargets: {}
 		}
 	);
 	const players = $derived(Object.keys(gameState.players));
@@ -41,21 +43,30 @@
 	function rollDice() {
 		const roll = Math.floor(Math.random() * 6) + 1;
 		myDiceRoll = roll;
+		playDice();
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_ROLL_DICE', diceValue: roll } });
 	}
 	const allRolled = $derived(Object.keys(data.dice).length === players.length);
 
 	function beginNight() {
+		playShhh();
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_BEGIN_NIGHT' } });
 	}
 
 	// Phase: night
 	function nextHour() {
+		if (data.currentHour < 6) playShhh();
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_NEXT_HOUR' } });
 	}
 
 	function stealCheese() {
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_STEAL_CHEESE' } });
+	}
+
+	function peek(targetId: string) {
+		if (data.peekTargets?.[selfId]) return;
+		onAction({ type: 'ADD_POINTS', payload: { points: { [selfId]: 1 } } });
+		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_PEEK', targetId } });
 	}
 
 	// Phase: day
@@ -73,6 +84,7 @@
 	const allVoted = $derived(Object.keys(data.votes).length === players.length);
 
 	function reveal() {
+		playDing();
 		// Tally votes
 		const counts: Record<string, number> = {};
 		for (const target of Object.values(data.votes)) {
@@ -115,6 +127,10 @@
 		myDiceRoll = null;
 		myVote = null;
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_NEXT_ROUND' } });
+	}
+
+	function backToLobby() {
+		onAction({ type: 'BACK_TO_LOBBY', payload: {} });
 	}
 </script>
 
@@ -163,12 +179,32 @@
 				<div class="sleep-status zzz">You are fast asleep... 💤</div>
 			{:else}
 				<div class="sleep-status awake">You are AWAKE! 👀</div>
+				
+				{@const awakePeers = players.filter(p => !data.sleepingPeers.includes(p))}
 				{#if data.roles[selfId] === 'thief'}
 					<div class="thief-actions mt">
 						{#if data.cheeseStolenBy}
 							<p>🧀 Cheese secured!</p>
 						{:else}
 							<button class="btn-primary" onclick={stealCheese}>Steal the Cheese!</button>
+						{/if}
+					</div>
+				{:else if awakePeers.length === 1}
+					<div class="sleepyhead-actions mt">
+						<p>You are the only one awake! You can peek at someone's dice roll.</p>
+						{#if data.peekTargets?.[selfId]}
+							{@const targetId = data.peekTargets[selfId]}
+							<p class="peek-result mt">
+								You peeked at {gameState.players[targetId]?.name}. Their dice roll was: <strong>{data.dice[targetId]}</strong>
+							</p>
+						{:else}
+							<div class="vote-grid mt">
+								{#each players.filter(p => p !== selfId) as p}
+									<button class="btn-ghost vote-btn" onclick={() => peek(p)}>
+										Peek at {gameState.players[p]?.name}
+									</button>
+								{/each}
+							</div>
 						{/if}
 					</div>
 				{/if}
@@ -220,16 +256,36 @@
 		<div class="center-content">
 			<h3>The Reveal!</h3>
 			
-			<p class="reveal-text">
-				The thief was: <strong>{thiefId ? gameState.players[thiefId]?.name : 'No one'}</strong>
-			</p>
-			
-			{#if !data.cheeseStolenBy}
-				<p class="reveal-text">The thief forgot to steal the cheese!</p>
-			{/if}
+			<div class="reveal-card">
+				<p class="reveal-text">
+					The thief was: <strong class="thief-name">{thiefId ? gameState.players[thiefId]?.name : 'No one'}</strong>
+				</p>
+				
+				{#if !data.cheeseStolenBy}
+					<p class="reveal-subtext">The thief forgot to steal the cheese!</p>
+				{/if}
+			</div>
+
+			<div class="vote-summary mt">
+				<h4>Vote Summary</h4>
+				<ul class="summary-list">
+					{#each Object.entries(data.votes) as [voterId, targetId]}
+						<li>
+							<strong>{gameState.players[voterId]?.name}</strong> voted for 
+							<strong>{gameState.players[targetId]?.name}</strong>
+							{#if targetId === thiefId}
+								<span class="correct-tag">✓</span>
+							{/if}
+						</li>
+					{/each}
+				</ul>
+			</div>
 
 			{#if isHost}
-				<button class="btn-primary mt" onclick={nextRound}>Next Round</button>
+				<div class="host-actions mt">
+					<button class="btn-primary" onclick={nextRound}>Next Round</button>
+					<button class="btn-ghost" onclick={backToLobby}>Return to Lobby</button>
+				</div>
 			{/if}
 		</div>
 	{/if}
@@ -331,6 +387,69 @@
 	.reveal-text {
 		font-size: 1.2rem;
 		color: #fff;
+	}
+
+	.reveal-card {
+		background: rgba(124, 106, 247, 0.1);
+		padding: 1.5rem 2rem;
+		border-radius: var(--radius-lg);
+		border: 1px solid rgba(124, 106, 247, 0.3);
+		margin-bottom: 1rem;
+	}
+
+	.thief-name {
+		color: var(--color-accent-light);
+		font-size: 1.4rem;
+	}
+
+	.reveal-subtext {
+		color: var(--color-text-muted);
+		margin-top: 0.5rem;
+	}
+
+	.vote-summary {
+		width: 100%;
+		max-width: 400px;
+		background: rgba(0,0,0,0.2);
+		padding: 1.5rem;
+		border-radius: var(--radius-md);
+	}
+
+	.vote-summary h4 {
+		margin-top: 0;
+		color: var(--color-text-muted);
+		text-transform: uppercase;
+		font-size: 0.8rem;
+		letter-spacing: 0.05em;
+	}
+
+	.summary-list {
+		list-style: none;
+		padding: 0;
+		margin: 1rem 0 0 0;
+		text-align: left;
+	}
+
+	.summary-list li {
+		padding: 0.5rem 0;
+		border-bottom: 1px solid rgba(255,255,255,0.05);
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.correct-tag {
+		color: var(--color-success);
+		font-weight: bold;
+		margin-left: auto;
+	}
+
+	.host-actions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
+		width: 100%;
+		max-width: 300px;
 	}
 
 	.mt { margin-top: 2rem; }

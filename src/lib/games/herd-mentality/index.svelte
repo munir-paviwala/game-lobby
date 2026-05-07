@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { GameState, Action } from '$lib/engine/types';
 	import { getRandomPrompts, type HMData } from './reducer';
+	import { playPop, playDing } from '$lib/engine/sounds';
 
 	interface Props {
 		state: GameState;
@@ -23,6 +24,7 @@
 	});
 
 	function pickPrompt(prompt: string) {
+		playPop();
 		onAction({ type: 'GAME_ACTION', payload: { type: 'HM_START_ROUND', prompt } });
 		hostPrompts = [];
 	}
@@ -38,6 +40,7 @@
 
 	// Host: Reveal
 	function revealAnswers() {
+		playDing();
 		// Calculate majority
 		const counts: Record<string, number> = {};
 		for (const ans of Object.values(data.answers)) {
@@ -77,6 +80,10 @@
 	function nextRound() {
 		myAnswer = '';
 		onAction({ type: 'GAME_ACTION', payload: { type: 'HM_NEXT_ROUND' } });
+	}
+
+	function backToLobby() {
+		onAction({ type: 'BACK_TO_LOBBY', payload: {} });
 	}
 </script>
 
@@ -164,6 +171,7 @@
 			{#if isHost}
 				<div class="host-panel mt-4">
 					<button class="btn-primary" onclick={nextRound}>Next Round →</button>
+					<button class="btn-ghost" onclick={backToLobby}>Return to Lobby</button>
 				</div>
 			{/if}
 		</div>

@@ -106,9 +106,16 @@
 			});
 		}
 	});
+
+	const playerCount = $derived(Object.keys(remoteStreams).length + 1);
+	const minWidth = $derived(playerCount > 6 ? '70px' : (playerCount > 4 ? '100px' : '140px'));
 </script>
 
-<div class="video-grid" class:is-playing={gameState.phase === 'playing'}>
+<div 
+	class="video-grid" 
+	class:is-playing={gameState.phase === 'playing'}
+	style="--min-video-width: {minWidth}"
+>
 	<!-- Local Preview -->
 	<div class="video-container local" class:sleeping={isAsleep(selfId)}>
 		<video
@@ -162,10 +169,10 @@
 <style>
 	.video-grid {
 		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-		gap: 1rem;
+		grid-template-columns: repeat(auto-fill, minmax(var(--min-video-width, 140px), 1fr));
+		gap: 0.75rem;
 		width: 100%;
-		padding: 1rem;
+		padding: 0.75rem;
 		background: rgba(0, 0, 0, 0.2);
 		border-radius: 16px;
 		transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -173,15 +180,14 @@
 
 	/* When game starts, video grid becomes smaller and horizontal at the top */
 	.video-grid.is-playing {
-		grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-		padding: 0.75rem;
+		padding: 0.5rem;
 		grid-column: 1 / -1;
-		gap: 0.75rem;
+		gap: 0.5rem;
 	}
 
 	.video-container {
 		position: relative;
-		border-radius: 12px;
+		border-radius: 10px;
 		overflow: hidden;
 		aspect-ratio: 4/3;
 		background: #111;
@@ -203,17 +209,21 @@
 
 	.nametag {
 		position: absolute;
-		bottom: 0.5rem;
-		left: 0.5rem;
+		bottom: 0.35rem;
+		left: 0.35rem;
 		background: rgba(0, 0, 0, 0.6);
 		backdrop-filter: blur(4px);
 		-webkit-backdrop-filter: blur(4px);
-		padding: 0.2rem 0.6rem;
-		border-radius: 6px;
-		font-size: 0.75rem;
+		padding: 0.15rem 0.45rem;
+		border-radius: 4px;
+		font-size: 0.7rem;
 		font-weight: 600;
 		color: #fff;
 		pointer-events: none;
+		max-width: calc(100% - 0.7rem);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
 	}
 
 	.local-controls {

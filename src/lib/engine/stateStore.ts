@@ -89,6 +89,14 @@ export function reduce(state: GameState, action: Action): GameState {
 			return { ...state, phase: 'ended' };
 		}
 
+		case 'BACK_TO_LOBBY': {
+			return {
+				...state,
+				phase: 'lobby',
+				game: { id: state.game.id, data: null }
+			};
+		}
+
 		case 'ADD_POINTS': {
 			const { points } = action.payload as { points: Record<string, number> };
 			const newScores = { ...state.scores };

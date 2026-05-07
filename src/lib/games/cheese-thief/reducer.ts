@@ -8,6 +8,7 @@ export interface CTData {
 	currentHour: number;
 	sleepingPeers: string[];
 	votes: Record<string, string>;
+	peekTargets: Record<string, string>;
 }
 
 export function reducer(data: unknown, action: Action): unknown {
@@ -20,7 +21,8 @@ export function reducer(data: unknown, action: Action): unknown {
 			cheeseStolenBy: null,
 			currentHour: 0,
 			sleepingPeers: [],
-			votes: {}
+			votes: {},
+			peekTargets: {}
 		};
 	}
 
@@ -93,6 +95,16 @@ export function reducer(data: unknown, action: Action): unknown {
 				};
 			}
 			return state;
+		}
+
+		case 'CT_PEEK': {
+			return {
+				...state,
+				peekTargets: {
+					...state.peekTargets,
+					[action.senderId!]: payload.targetId
+				}
+			};
 		}
 
 		case 'CT_BEGIN_VOTING': {

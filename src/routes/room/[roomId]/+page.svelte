@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
+	import { fade } from 'svelte/transition';
 	import { goto } from '$app/navigation';
 
 	import {
@@ -276,80 +277,90 @@
 		{:else}
 			<VideoGrid state={$gameState} selfId={selfPeerId} />
 
-			<!-- Players panel -->
-			<section class="players-panel card" aria-label="Players in room">
-				<div class="panel-header">
-					<h2 class="panel-title">Players</h2>
-					<span class="player-count">{$playerList.length}</span>
-				</div>
-
-				<div class="players-grid">
-					{#each $playerList as player (player.id)}
-						<PlayerCard 
-							player={player} 
-							score={$gameState.scores[player.id] ?? 0}
-							isSelf={player.id === selfPeerId} 
-							isHostPerspective={$isHost}
-							onScoreChange={(playerId, delta) => {
-								const newState = applyAction({ 
-									type: 'ADD_POINTS', 
-									payload: { points: { [playerId]: delta } } 
-								});
-								broadcastStateSync(newState);
-							}}
-						/>
-					{/each}
-
-					{#if $playerList.length === 0}
-						<p class="empty-hint">Waiting for players to join…</p>
-					{/if}
-				</div>
-			</section>
-
-			<!-- Game controls (host only) -->
-			{#if $isHost}
-				<section class="host-controls card" aria-label="Host controls">
+			{#if !$isPlaying}
+				<!-- Players panel -->
+				<section class="players-panel card" aria-label="Players in room">
 					<div class="panel-header">
-						<h2 class="panel-title">Host Controls</h2>
-						<span class="host-badge">You're the Host</span>
+						<h2 class="panel-title">Players</h2>
+						<span class="player-count">{$playerList.length}</span>
 					</div>
 
-					<p class="host-hint">
-						Share the room code above with friends. Once everyone has joined, start a game.
-					</p>
+					<div class="players-grid">
+						{#each $playerList as player (player.id)}
+							<PlayerCard 
+								player={player} 
+								score={$gameState.scores[player.id] ?? 0}
+								isSelf={player.id === selfPeerId} 
+								isHostPerspective={$isHost}
+								onScoreChange={(playerId, delta) => {
+									const newState = applyAction({ 
+										type: 'ADD_POINTS', 
+										payload: { points: { [playerId]: delta } } 
+									});
+									broadcastStateSync(newState);
+								}}
+							/>
+						{/each}
 
-					<div class="field">
-						<label for="game-picker">Select Game</label>
-						<select 
-							id="game-picker" 
-							class="game-select"
-							value={$gameState.game.id ?? ''}
-							onchange={(e) => handleSetGame(e.currentTarget.value)}
+						{#if $playerList.length === 0}
+							<p class="empty-hint">Waiting for players to join…</p>
+						{/if}
+					</div>
+				</section>
+
+				<!-- Game controls (host only) -->
+				{#if $isHost}
+					<section class="host-controls card" aria-label="Host controls">
+						<div class="panel-header">
+							<h2 class="panel-title">Host Controls</h2>
+							<span class="host-badge">You're the Host</span>
+						</div>
+
+						<p class="host-hint">
+							Share the room code above with friends. Once everyone has joined, start a game.
+						</p>
+
+						<div class="field">
+							<label for="game-picker">Select Game</label>
+							<select 
+								id="game-picker" 
+								class="game-select"
+								value={$gameState.game.id ?? ''}
+								onchange={(e) => handleSetGame(e.currentTarget.value)}
+								title="Pick a game to play"
+							>
+								<option value="" disabled>-- Pick a game --</option>
+								{#each listGames() as game}
+									<option value={game.id}>{game.emoji} {game.name}</option>
+								{/each}
+							</select>
+							{#if $gameState.game.id}
+								{@const selectedGame = getGame($gameState.game.id)}
+								<p class="game-description" transition:fade>
+									{selectedGame?.description} 
+									<span class="player-range">({selectedGame?.minPlayers}-{selectedGame?.maxPlayers} players)</span>
+								</p>
+							{/if}
+						</div>
+
+						<button
+							class="btn-primary start-btn"
+							id="btn-start-game"
+							disabled={$playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) || !$gameState.game.id}
+							onclick={handleStartGame}
+							title={!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) ? `Need at least ${getGame($gameState.game.id)?.minPlayers} players` : 'Start the game!'}
 						>
-							<option value="" disabled>-- Pick a game --</option>
-							{#each listGames() as game}
-								<option value={game.id}>{game.emoji} {game.name}</option>
-							{/each}
-						</select>
-					</div>
-
-					<button
-						class="btn-primary start-btn"
-						id="btn-start-game"
-						disabled={$playerList.length < 2 || !$gameState.game.id}
-						onclick={handleStartGame}
-						title={$playerList.length < 2 ? 'Need at least 2 players to start' : 'Start the game'}
-					>
-						{!$gameState.game.id ? 'Pick a game first' : $playerList.length < 2 ? `Waiting for players… (${$playerList.length}/2)` : 'Start Game →'}
-					</button>
-				</section>
-			{:else}
-				<!-- Non-host waiting view -->
-				<section class="waiting-panel card" aria-label="Waiting for host">
-					<div class="waiting-icon" aria-hidden="true">⏳</div>
-					<h2>Waiting for the host to start…</h2>
-					<p class="host-hint">The host will pick a game and kick things off.</p>
-				</section>
+							{!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id)?.minPlayers ?? 2) ? `Waiting for players… (${$playerList.length}/${getGame($gameState.game.id)?.minPlayers})` : 'Start Game →'}
+						</button>
+					</section>
+				{:else}
+					<!-- Non-host waiting view -->
+					<section class="waiting-panel card" aria-label="Waiting for host">
+						<div class="waiting-icon" aria-hidden="true">⏳</div>
+						<h2>Waiting for the host to start…</h2>
+						<p class="host-hint">The host will pick a game and kick things off.</p>
+					</section>
+				{/if}
 			{/if}
 		{/if}
 
@@ -564,6 +575,25 @@
 	.game-select option {
 		background: var(--bg-card);
 		color: var(--color-text);
+	}
+
+	.game-description {
+		margin-top: 0.75rem;
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+		line-height: 1.5;
+		background: rgba(255, 255, 255, 0.03);
+		padding: 0.75rem;
+		border-radius: var(--radius-sm);
+		border-left: 2px solid var(--color-accent);
+	}
+
+	.player-range {
+		display: block;
+		margin-top: 0.25rem;
+		font-weight: 600;
+		color: var(--color-accent-light);
+		font-size: 0.75rem;
 	}
 
 	/* Waiting panel */
