@@ -8,10 +8,20 @@
 		selfId: string;
 		remoteStreams: Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>;
 		localStream: MediaStream | null;
+		audioEnabled: boolean;
+		videoEnabled: boolean;
 		children?: any;
 	}
 
-	let { state, selfId, remoteStreams, localStream, children }: Props = $props();
+	let { 
+		state, 
+		selfId, 
+		remoteStreams, 
+		localStream, 
+		audioEnabled = $bindable(true),
+		videoEnabled = $bindable(true),
+		children 
+	}: Props = $props();
 
 	const gameModule = $derived(state.game.id ? getGame(state.game.id) : null);
 	const theme = $derived(gameModule?.theme || {
@@ -73,6 +83,8 @@
 						isSelf={player.id === selfId} 
 						isAsleep={isAsleep(player.id)} 
 						name={player.name} 
+						onToggleAudio={(e) => { if (player.id === selfId) audioEnabled = e; }}
+						onToggleVideo={(e) => { if (player.id === selfId) videoEnabled = e; }}
 					/>
 				</div>
 				<div class="player-info-bubble">

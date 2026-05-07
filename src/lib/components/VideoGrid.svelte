@@ -10,6 +10,8 @@
 		mode?: 'grid' | 'headless';
 		localStream?: MediaStream | null;
 		remoteStreams?: Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>;
+		audioEnabled?: boolean;
+		videoEnabled?: boolean;
 	}
 
 	let { 
@@ -17,19 +19,16 @@
 		selfId, 
 		mode = 'grid',
 		localStream = $bindable(null),
-		remoteStreams = $bindable(new Map())
+		remoteStreams = $bindable(new Map()),
+		audioEnabled = $bindable(true),
+		videoEnabled = $bindable(true)
 	}: Props = $props();
 
-	// ─── Local State ────────────────────────────────────────────────────────
-	let audioEnabled = $state(true);
-	let videoEnabled = $state(true);
 	let videoError = $state(false);
-
 	let cleanupFns: Array<() => void> = [];
 
 	onMount(async () => {
 		try {
-			// Optimization: Use lower resolution for P2P mesh stability
 			const constraints = {
 				video: { 
 					width: { ideal: 320 }, 
@@ -49,6 +48,11 @@
 				console.warn('Optimized constraints failed, trying basic...', firstErr);
 				localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 			}
+
+			// Apply initial state
+			localStream.getAudioTracks().forEach((t) => (t.enabled = audioEnabled));
+			localStream.getVideoTracks().forEach((t) => (t.enabled = videoEnabled));
+
 		} catch (e) {
 			console.error('Failed to get user media:', e);
 			videoError = true;
@@ -70,6 +74,18 @@
 		);
 	});
 
+	$effect(() => {
+		if (localStream) {
+			localStream.getAudioTracks().forEach((t) => (t.enabled = audioEnabled));
+		}
+	});
+
+	$effect(() => {
+		if (localStream) {
+			localStream.getVideoTracks().forEach((t) => (t.enabled = videoEnabled));
+		}
+	});
+
 	onDestroy(() => {
 		cleanupFns.forEach((fn) => fn());
 		if (localStream) {
@@ -78,19 +94,8 @@
 		}
 	});
 
-	function toggleAudio() {
-		if (localStream) {
-			audioEnabled = !audioEnabled;
-			localStream.getAudioTracks().forEach((t) => (t.enabled = audioEnabled));
-		}
-	}
-
-	function toggleVideo() {
-		if (localStream) {
-			videoEnabled = !videoEnabled;
-			localStream.getVideoTracks().forEach((t) => (t.enabled = videoEnabled));
-		}
-	}
+	function toggleAudio() { audioEnabled = !audioEnabled; }
+	function toggleVideo() { videoEnabled = !videoEnabled; }
 
 	function isAsleep(peerId: string): boolean {
 		if (gameState.phase !== 'playing') return false;
@@ -118,24 +123,9 @@
 				isSelf={true} 
 				isAsleep={isAsleep(selfId)} 
 				name="{gameState.players[selfId]?.name || 'You'}" 
+				onToggleAudio={toggleAudio}
+				onToggleVideo={toggleVideo}
 			/>
-
-			<div class="local-controls">
-				<button 
-					class="media-btn" 
-					class:off={!audioEnabled}
-					onclick={toggleAudio}
-				>
-					{audioEnabled ? '🎤' : '🔇'}
-				</button>
-				<button 
-					class="media-btn" 
-					class:off={!videoEnabled}
-					onclick={toggleVideo}
-				>
-					{videoEnabled ? '📷' : '🚫'}
-				</button>
-			</div>
 		</div>
 
 		<!-- Remote Peers -->
@@ -183,38 +173,6 @@
 		border-color: rgba(255, 200, 100, 0.3);
 	}
 
-	.local-controls {
-		position: absolute;
-		top: 0.5rem;
-		right: 0.5rem;
-		display: flex;
-		gap: 0.35rem;
-		opacity: 0;
-		transition: opacity 0.2s ease;
-	}
-
-	.video-container.local:hover .local-controls {
-		opacity: 1;
-	}
-
-	.media-btn {
-		background: rgba(0, 0, 0, 0.6);
-		backdrop-filter: blur(4px);
-		border: 1px solid rgba(255, 255, 255, 0.1);
-		color: #fff;
-		width: 28px;
-		height: 28px;
-		border-radius: 50%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		font-size: 0.75rem;
-		cursor: pointer;
-	}
-
-	.media-btn.off {
-		background: rgba(240, 96, 96, 0.8);
-	}
 
 	.video-status {
 		position: absolute;

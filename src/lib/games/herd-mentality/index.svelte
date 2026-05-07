@@ -149,19 +149,47 @@
 		</div>
 
 	{:else if data.phase === 'revealing'}
-		<div class="revealing-view" in:fade>
-			<h3 class="prompt-text-small">"{data.prompt}"</h3>
+		<div class="revealing-view animate-in" in:fade>
+			<div class="revealing-header">
+				<h3 class="prompt-text-small">"{data.prompt}"</h3>
+				{#if data.majorityAnswer !== null}
+					<div class="majority-announcement">
+						<span class="label">The Herd said:</span>
+						<span class="majority-text">{data.majorityAnswer}</span>
+					</div>
+				{:else}
+					<div class="no-herd glass">
+						<p>No herd mentality! Everyone went rogue. 🚫🐄</p>
+					</div>
+				{/if}
+			</div>
 			
-			{#if data.majorityAnswer === null}
-				<div class="no-herd">
-					<p>No herd mentality! Everyone went rogue. 🚫🐄</p>
-				</div>
-			{:else}
-				<div class="majority-reveal">
-					<span class="label">The Herd said:</span>
-					<span class="majority-text">{data.majorityAnswer}</span>
-				</div>
-			{/if}
+			<div class="answers-grid">
+				{#each players as pId}
+					{@const answer = data.answers[pId] || 'No Answer'}
+					{@const isMajority = answer.toLowerCase().trim() === data.majorityAnswer}
+					<div class="answer-card glass" class:is-majority={isMajority}>
+						<div class="player-name">{gameState.players[pId]?.name || 'Unknown'}</div>
+						<div class="player-answer">"{answer}"</div>
+						
+						{#if isHost}
+							<div class="host-score-controls">
+								<button class="score-btn minus" onclick={() => onAction({ type: 'ADD_POINTS', payload: { points: { [pId]: -1 } } })} title="Subtract point">−</button>
+								<span class="current-score">{gameState.scores[pId] ?? 0}</span>
+								<button class="score-btn plus" onclick={() => onAction({ type: 'ADD_POINTS', payload: { points: { [pId]: 1 } } })} title="Add point">+</button>
+							</div>
+						{:else}
+							<div class="score-display">
+								{gameState.scores[pId] ?? 0} pts
+							</div>
+						{/if}
+						
+						{#if isMajority}
+							<div class="majority-badge">🐄</div>
+						{/if}
+					</div>
+				{/each}
+			</div>
 
 			<div class="host-actions-overlay">
 				{#if isHost}
@@ -317,12 +345,138 @@
 		opacity: 0.7;
 	}
 
-	.majority-reveal {
+	.revealing-view {
+		width: 100%;
+		max-width: 800px;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 2rem;
+	}
+
+	.revealing-header {
+		text-align: center;
+	}
+
+	.majority-announcement {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		gap: 0.5rem;
-		animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+		animation: pop-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+	}
+
+	.answers-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+		gap: 1rem;
+		width: 100%;
+		margin-top: 1rem;
+	}
+
+	.answer-card {
+		background: rgba(255, 255, 255, 0.05);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: 12px;
+		padding: 1rem;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		text-align: center;
+		position: relative;
+		transition: all 0.3s ease;
+	}
+
+	.answer-card.is-majority {
+		background: rgba(124, 106, 247, 0.15);
+		border-color: var(--accent);
+		transform: scale(1.05);
+		box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+	}
+
+	.player-name {
+		font-size: 0.75rem;
+		text-transform: uppercase;
+		letter-spacing: 0.1em;
+		color: rgba(255, 255, 255, 0.5);
+		margin-bottom: 0.5rem;
+	}
+
+	.player-answer {
+		font-size: 1.25rem;
+		font-weight: 700;
+		color: #fff;
+		margin-bottom: 1rem;
+		word-break: break-word;
+	}
+
+	.host-score-controls {
+		display: flex;
+		align-items: center;
+		gap: 0.75rem;
+		background: rgba(0, 0, 0, 0.3);
+		padding: 0.25rem 0.5rem;
+		border-radius: 20px;
+	}
+
+	.score-btn {
+		width: 24px;
+		height: 24px;
+		border-radius: 50%;
+		border: none;
+		background: rgba(255, 255, 255, 0.1);
+		color: white;
+		cursor: pointer;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		font-weight: bold;
+		transition: all 0.2s ease;
+	}
+
+	.score-btn:hover {
+		background: var(--accent);
+	}
+
+	.score-btn.minus:hover {
+		background: #f06060;
+	}
+
+	.current-score {
+		font-size: 0.9rem;
+		font-weight: 700;
+		min-width: 1.5rem;
+	}
+
+	.score-display {
+		font-size: 0.85rem;
+		font-weight: 600;
+		color: var(--accent);
+	}
+
+	.majority-badge {
+		position: absolute;
+		top: -10px;
+		right: -10px;
+		background: var(--accent);
+		width: 28px;
+		height: 28px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		border-radius: 50%;
+		font-size: 1.1rem;
+		box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+		animation: bounce 2s infinite;
+	}
+
+	@keyframes bounce {
+		0%, 100% { transform: translateY(0); }
+		50% { transform: translateY(-5px); }
+	}
+
+	.majority-reveal {
+		display: none; /* Replaced by announcement */
 	}
 
 	.majority-text {
@@ -346,7 +500,7 @@
 	}
 
 	.host-actions-overlay {
-		margin-top: 3rem;
+		margin-top: 2rem;
 		display: flex;
 		gap: 1rem;
 	}

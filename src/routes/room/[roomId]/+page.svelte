@@ -33,7 +33,7 @@
 	import RoomCode from '$lib/components/RoomCode.svelte';
 	import VideoGrid from '$lib/components/VideoGrid.svelte';
 	import GameTable from '$lib/components/GameTable.svelte';
-	import ChaosTool from '$lib/components/ChaosTool.svelte';
+	
 	import type { PageData } from './$types';
 	import type { PeerMessage, Action } from '$lib/engine/types';
 
@@ -51,6 +51,9 @@
 	let videoGrid: any = $state(null);
 	let remoteStreams = $state(new Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>());
 	let localStream = $state<MediaStream | null>(null);
+	let audioEnabled = $state(true);
+	let videoEnabled = $state(true);
+
 
 	// Handshake state
 	let handshakeInterval: any = null;
@@ -285,16 +288,16 @@
 			</div>
 
 		{:else}
-			<div class="video-wrapper">
-				<VideoGrid 
-					bind:this={videoGrid} 
-					state={$gameState} 
-					selfId={selfPeerId} 
-					mode={$isPlaying ? 'headless' : 'grid'}
-					bind:remoteStreams
-					bind:localStream
-				/>
-			</div>
+			<VideoGrid 
+				bind:this={videoGrid} 
+				state={$gameState} 
+				selfId={selfPeerId} 
+				mode={$isPlaying ? 'headless' : 'grid'}
+				bind:remoteStreams
+				bind:localStream
+				bind:audioEnabled
+				bind:videoEnabled
+			/>
 
 			{#if !hasJoined}
 				<section class="pre-join-card card">
@@ -411,6 +414,8 @@
 				selfId={selfPeerId} 
 				{remoteStreams} 
 				{localStream}
+				bind:audioEnabled
+				bind:videoEnabled
 			>
 				{@const ActiveGame = getGame($gameState.game.id)?.component}
 				{#if ActiveGame}
@@ -426,7 +431,7 @@
 	</div>
 </main>
 
-<ChaosTool />
+
 
 <style>
 	.room-page {

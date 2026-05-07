@@ -48,6 +48,7 @@
 
 		--transition-fast: 150ms ease;
 		--transition-md: 250ms ease;
+		--transition-slow: 400ms cubic-bezier(0.16, 1, 0.3, 1);
 	}
 
 	/* ─── Global Reset ────────────────────────────────────────────────────── */
@@ -162,6 +163,24 @@
 
 	:global(.btn-danger:hover) {
 		background: rgba(240, 96, 96, 0.25);
+	}
+
+	/* Glass utility */
+	:global(.glass) {
+		background: rgba(255, 255, 255, 0.03);
+		backdrop-filter: blur(12px);
+		-webkit-backdrop-filter: blur(12px);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+	}
+
+	/* Animations */
+	:global(.animate-in) {
+		animation: fade-in-up 0.5s var(--transition-slow) forwards;
+	}
+
+	@keyframes fade-in-up {
+		from { opacity: 0; transform: translateY(10px); }
+		to { opacity: 1; transform: translateY(0); }
 	}
 
 	/* Form inputs */
