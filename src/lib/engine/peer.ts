@@ -64,33 +64,50 @@ const streamHandlers: Set<StreamHandler> = new Set();
  * If already in a different room, leaves first.
  */
 export async function joinRoom(roomId: string): Promise<void> {
-	const cleanId = roomId.trim().toLowerCase();
-	if (currentRoomId === cleanId && currentRoom) return;
-	if (currentRoom) leaveRoom();
+	try {
+		const cleanId = roomId.trim().toLowerCase();
+		if (currentRoomId === cleanId && currentRoom) return;
+		if (currentRoom) leaveRoom();
 
-	console.log(`[P2P] Joining room: ${cleanId} on relays:`, RELAYS);
-	const room = trysteroJoin({ appId: APP_ID, relays: RELAYS }, cleanId);
-	currentRoom = room;
-	currentRoomId = cleanId;
+		console.log(`[P2P] Attempting to join: ${cleanId}`);
+		
+		// Use a slightly smaller, more stable relay list
+		const stableRelays = [
+			'wss://relay.damus.io',
+			'wss://nos.lol',
+			'wss://relay.snort.social'
+		];
 
-	const [, getMessage] = room.makeAction<any>('msg');
+		const room = trysteroJoin({ appId: APP_ID, relays: stableRelays }, cleanId);
+		currentRoom = room;
+		currentRoomId = cleanId;
 
-	getMessage((data, peerId) => {
-		messageHandlers.forEach((h) => h(data as PeerMessage, peerId));
-	});
+		const [, getMessage] = room.makeAction<any>('msg');
 
-	room.onPeerJoin((peerId) => {
-		joinHandlers.forEach((h) => h(peerId));
-	});
+		getMessage((data, peerId) => {
+			messageHandlers.forEach((h) => h(data as PeerMessage, peerId));
+		});
 
-	room.onPeerLeave((peerId) => {
-		leaveHandlers.forEach((h) => h(peerId));
-	});
+		room.onPeerJoin((peerId) => {
+			console.log(`[P2P] Peer connected: ${peerId}`);
+			joinHandlers.forEach((h) => h(peerId));
+		});
 
-	// Cast to any to bypass strict type checking for the media stream callback
-	(room as any).onPeerStream((stream: MediaStream, peerId: string) => {
-		streamHandlers.forEach((h) => h(stream, peerId));
-	});
+		room.onPeerLeave((peerId) => {
+			console.log(`[P2P] Peer disconnected: ${peerId}`);
+			leaveHandlers.forEach((h) => h(peerId));
+		});
+
+		// Cast to any to bypass strict type checking for the media stream callback
+		(room as any).onPeerStream((stream: MediaStream, peerId: string) => {
+			streamHandlers.forEach((h) => h(stream, peerId));
+		});
+
+		console.log(`[P2P] Joined room ${cleanId} successfully. selfId: ${trysteroSelfId}`);
+	} catch (err) {
+		console.error('[P2P] Critical failure joining room:', err);
+		throw err;
+	}
 }
 
 /** Leave the current room and clean up. */

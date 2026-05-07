@@ -89,46 +89,38 @@
 			);
 
 			if ($isHost) {
-				// We are the host — register ourselves in state immediately
 				const meta = $roomMeta;
 				roomMeta.update((m) => m ? { ...m, hostId: selfPeerId } : m);
 				saveSession();
 
 				applyAction({
 					type: 'PLAYER_JOIN',
-					payload: {
-						id: selfPeerId,
-						name: $playerName,
-						isHost: true,
-						joinedAt: Date.now()
-					}
+					payload: { id: selfPeerId, name: $playerName, isHost: true, joinedAt: Date.now() }
 				});
 				hostPeerId.set(selfPeerId);
-				receivedWelcome = true; // Host is always welcomed
+				receivedWelcome = true;
 			} else {
 				// START HANDSHAKE HEARTBEAT
-				// We keep announcing ourselves until the host welcomes us
 				handshakeInterval = setInterval(() => {
 					if (!receivedWelcome) {
 						console.log('[P2P] Pulsing ANNOUNCE...');
-						// Broadcast announce to all peers because we don't know who the host is yet
-						import('$lib/engine/peer').then(p => {
-							p.broadcast({
-								kind: 'ANNOUNCE',
-								name: $playerName,
-								passwordHash: $roomMeta?.passwordHash ?? null
-							});
+						// Use the top-level broadcast import, not dynamic import
+						broadcast({
+							kind: 'ANNOUNCE',
+							name: $playerName,
+							passwordHash: $roomMeta?.passwordHash ?? null
 						});
 					} else {
-						clearInterval(handshakeInterval);
+						if (handshakeInterval) clearInterval(handshakeInterval);
 					}
 				}, 2000);
 			}
 
 			hasJoined = true;
-		} catch (e) {
+		} catch (e: any) {
+			console.error('Join room failed:', e);
 			connectionStatus = 'error';
-			errorMsg = 'Failed to connect. Check your internet connection and try again.';
+			errorMsg = `Connection failed: ${e.message || 'Unknown error'}. Check console for details.`;
 		} finally {
 			loadingJoin = false;
 		}
