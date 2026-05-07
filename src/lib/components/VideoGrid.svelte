@@ -34,13 +34,22 @@
 
 	let cleanupFns: Array<() => void> = [];
 
+	let videoError = $state(false);
+
 	onMount(async () => {
 		try {
 			// Request local camera and mic
-			localStream = await navigator.mediaDevices.getUserMedia({
+			const constraints = {
 				video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
 				audio: true
-			});
+			};
+			
+			try {
+				localStream = await navigator.mediaDevices.getUserMedia(constraints);
+			} catch (firstErr) {
+				console.warn('Front camera failed, trying any camera...', firstErr);
+				localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+			}
 
 			if (localVideoNode) {
 				localVideoNode.srcObject = localStream;
@@ -50,7 +59,7 @@
 			addStream(localStream);
 		} catch (e) {
 			console.error('Failed to get user media:', e);
-			// It's okay, they just play without video
+			videoError = true;
 		}
 
 		// Handle incoming streams
@@ -110,6 +119,13 @@
 	const playerCount = $derived(Object.keys(remoteStreams).length + 1);
 	const minWidth = $derived(playerCount > 6 ? '70px' : (playerCount > 4 ? '100px' : '140px'));
 </script>
+
+{#if videoError}
+	<div class="video-error-hint card">
+		<p><strong>📹 Camera Issue:</strong> If you're on mobile, ensure you are NOT in an "In-App" browser (like Instagram/Facebook). Open the link in <strong>Safari</strong> or <strong>Chrome</strong> directly.</p>
+		<button class="btn-ghost" onclick={() => window.location.reload()}>Retry Camera</button>
+	</div>
+{/if}
 
 <div 
 	class="video-grid" 
@@ -234,6 +250,19 @@
 		gap: 0.35rem;
 		opacity: 0;
 		transition: opacity 0.2s ease;
+	}
+
+	.video-error-hint {
+		grid-column: 1 / -1;
+		background: rgba(240, 96, 96, 0.1);
+		border-color: rgba(240, 96, 96, 0.3);
+		padding: 1rem;
+		font-size: 0.85rem;
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		margin-bottom: 1rem;
 	}
 
 	.video-container.local:hover .local-controls {

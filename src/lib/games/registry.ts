@@ -55,7 +55,7 @@ const registry: GameModule[] = [
 		name: 'Herd Mentality',
 		description: 'Think like the herd! Write down the same answer as everyone else.',
 		emoji: '🐄',
-		minPlayers: 4,
+		minPlayers: 3,
 		maxPlayers: 20,
 		component: HerdMentality as unknown as GameModule['component'],
 		reducer: hmReducer
@@ -65,7 +65,7 @@ const registry: GameModule[] = [
 		name: 'Cheese Thief',
 		description: 'A social deduction game of sleeping, waking, and stealing cheese.',
 		emoji: '🧀',
-		minPlayers: 4,
+		minPlayers: 3,
 		maxPlayers: 8,
 		component: CheeseThief as unknown as GameModule['component'],
 		reducer: ctReducer

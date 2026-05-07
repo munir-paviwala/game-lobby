@@ -28,11 +28,21 @@
 
 	// Phase: setup
 	function assignRoles() {
-		const roles: Record<string, 'thief' | 'sleepyhead'> = {};
+		const roles: Record<string, 'thief' | 'sleepyhead' | 'joker' | 'accomplice'> = {};
 		const shuffled = [...players].sort(() => Math.random() - 0.5);
-		// 1 thief, rest sleepyheads
+		
+		// 1 thief
 		roles[shuffled[0]] = 'thief';
-		for (let i = 1; i < shuffled.length; i++) {
+		
+		// 1 joker if 5+ players
+		let nextIdx = 1;
+		if (players.length >= 5) {
+			roles[shuffled[1]] = 'joker';
+			nextIdx = 2;
+		}
+
+		// rest sleepyheads
+		for (let i = nextIdx; i < shuffled.length; i++) {
 			roles[shuffled[i]] = 'sleepyhead';
 		}
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_START_GAME', roles } });
@@ -69,6 +79,11 @@
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_PEEK', targetId } });
 	}
 
+	function chooseAccomplice(targetId: string) {
+		if (data.accompliceTarget) return;
+		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_CHOOSE_ACCOMPLICE', targetId } });
+	}
+
 	// Phase: day
 	function beginVoting() {
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_BEGIN_VOTING' } });
@@ -102,24 +117,38 @@
 			}
 		}
 
-		// Find thief
+		// Roles
 		const thiefId = Object.keys(data.roles).find((p) => data.roles[p] === 'thief');
+		const jokerId = Object.keys(data.roles).find((p) => data.roles[p] === 'joker');
+		const accompliceId = data.accompliceTarget;
 
 		// Points logic
 		const points: Record<string, number> = {};
+		
+		// Joker condition: If voted out, Joker wins big
+		if (jokerId && votedOut === jokerId) {
+			points[jokerId] = 3;
+		}
+
+		// Thief / Sleepyhead condition
 		if (thiefId) {
 			if (votedOut === thiefId) {
 				// Sleepyheads win
 				players.forEach((p) => {
-					if (data.roles[p] === 'sleepyhead') points[p] = 1;
+					if (data.roles[p] === 'sleepyhead' || data.roles[p] === 'joker') {
+						points[p] = (points[p] || 0) + 1;
+					}
 				});
 			} else {
-				// Thief wins (either tie, or someone else voted out)
-				points[thiefId] = 2; // Thief gets 2 points for surviving
+				// Thief & Accomplice win
+				points[thiefId] = (points[thiefId] || 0) + 2;
+				if (accompliceId) {
+					points[accompliceId] = (points[accompliceId] || 0) + 2;
+				}
 			}
-			onAction({ type: 'ADD_POINTS', payload: { points } });
 		}
-
+		
+		onAction({ type: 'ADD_POINTS', payload: { points } });
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_REVEAL' } });
 	}
 
@@ -151,6 +180,8 @@
 			<h3>Your Role: <span class="role">{data.roles[selfId]}</span></h3>
 			{#if data.roles[selfId] === 'thief'}
 				<p class="role-desc">You are the thief! You must steal the cheese during your wake hour.</p>
+			{:else if data.roles[selfId] === 'joker'}
+				<p class="role-desc">You are the Fall Mouse (Joker)! You win if you get voted out.</p>
 			{:else}
 				<p class="role-desc">You are a sleepyhead. Try to find out who stole the cheese.</p>
 			{/if}
@@ -173,17 +204,38 @@
 		</div>
 	{:else if data.phase === 'night'}
 		<div class="center-content night-mode">
-			<h3 class="hour">Night Phase - Hour {data.currentHour}</h3>
+			<h3 class="hour">
+				{data.currentHour === 7 ? "Thief's Secret Choice" : `Night Phase - Hour ${data.currentHour}`}
+			</h3>
 
 			{#if data.sleepingPeers.includes(selfId)}
-				<div class="sleep-status zzz">You are fast asleep... 💤</div>
+				<div class="sleep-status zzz">
+					{#if data.roles[selfId] === 'accomplice'}
+						You feel a tap on your shoulder... you are the ACCOMPLICE! 🤫
+					{:else}
+						You are fast asleep... 💤
+					{/if}
+				</div>
 			{:else}
 				<div class="sleep-status awake">You are AWAKE! 👀</div>
 				
 				{@const awakePeers = players.filter(p => !data.sleepingPeers.includes(p))}
 				{#if data.roles[selfId] === 'thief'}
 					<div class="thief-actions mt">
-						{#if data.cheeseStolenBy}
+						{#if data.currentHour === 7}
+							<p>Choose an accomplice to work with you.</p>
+							{#if data.accompliceTarget}
+								<p class="mt">You chose <strong>{gameState.players[data.accompliceTarget]?.name}</strong></p>
+							{:else}
+								<div class="vote-grid mt">
+									{#each players.filter(p => p !== selfId) as p}
+										<button class="btn-ghost vote-btn" onclick={() => chooseAccomplice(p)}>
+											Pick {gameState.players[p]?.name}
+										</button>
+									{/each}
+								</div>
+							{/if}
+						{:else if data.cheeseStolenBy}
 							<p>🧀 Cheese secured!</p>
 						{:else}
 							<button class="btn-primary" onclick={stealCheese}>Steal the Cheese!</button>
@@ -253,6 +305,8 @@
 		</div>
 	{:else if data.phase === 'reveal'}
 		{@const thiefId = Object.keys(data.roles).find((p) => data.roles[p] === 'thief')}
+		{@const jokerId = Object.keys(data.roles).find((p) => data.roles[p] === 'joker')}
+		{@const accompliceId = data.accompliceTarget}
 		<div class="center-content">
 			<h3>The Reveal!</h3>
 			
@@ -260,21 +314,25 @@
 				<p class="reveal-text">
 					The thief was: <strong class="thief-name">{thiefId ? gameState.players[thiefId]?.name : 'No one'}</strong>
 				</p>
-				
-				{#if !data.cheeseStolenBy}
+				{#if accompliceId}
+					<p class="reveal-subtext">Accomplice: {gameState.players[accompliceId]?.name}</p>
+				{#else if !data.cheeseStolenBy}
 					<p class="reveal-subtext">The thief forgot to steal the cheese!</p>
+				{/if}
+				{#if jokerId}
+					<p class="reveal-subtext">Fall Mouse (Joker): {gameState.players[jokerId]?.name}</p>
 				{/if}
 			</div>
 
 			<div class="vote-summary mt">
-				<h4>Vote Summary</h4>
+				<h4>Results</h4>
 				<ul class="summary-list">
-					{#each Object.entries(data.votes) as [voterId, targetId]}
+					{#each players as pid}
 						<li>
-							<strong>{gameState.players[voterId]?.name}</strong> voted for 
-							<strong>{gameState.players[targetId]?.name}</strong>
-							{#if targetId === thiefId}
-								<span class="correct-tag">✓</span>
+							<strong>{gameState.players[pid]?.name}</strong>
+							<span class="role-tag {data.roles[pid]}">{data.roles[pid]}</span>
+							{#if data.votes[pid]}
+								<span class="vote-count">Received {Object.values(data.votes).filter(v => v === pid).length} votes</span>
 							{/if}
 						</li>
 					{/each}
@@ -442,6 +500,25 @@
 		color: var(--color-success);
 		font-weight: bold;
 		margin-left: auto;
+	}
+
+	.role-tag {
+		font-size: 0.7rem;
+		padding: 0.2rem 0.4rem;
+		border-radius: 4px;
+		text-transform: uppercase;
+		font-weight: bold;
+		margin-left: 0.5rem;
+	}
+	.role-tag.thief { background: var(--color-danger); color: #fff; }
+	.role-tag.joker { background: var(--color-gold); color: #000; }
+	.role-tag.accomplice { background: var(--color-accent); color: #fff; }
+	.role-tag.sleepyhead { background: rgba(255,255,255,0.1); color: var(--color-text-muted); }
+
+	.vote-count {
+		margin-left: auto;
+		font-size: 0.8rem;
+		color: var(--color-text-muted);
 	}
 
 	.host-actions {

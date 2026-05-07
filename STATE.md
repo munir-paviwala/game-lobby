@@ -9,7 +9,7 @@ We have successfully moved from a conceptual architecture to a fully functional 
 - **Phase 2 (Game Registry):** Pluggable architecture allowing multiple games. Wired `GAME_ACTION` to dynamic game reducers.
 - **Phase 3 (Video Engine):** Integrated camera/mic streams. Built a `VideoGrid` that supports game-driven effects like "Night Phase" blurring and muting.
 - **Phase 4 (Herd Mentality):** Implemented a full social quiz game with prompt picking, answer submission, and majority-based scoring.
-- **Cheese Thief "Peek" Rule:** Implemented a new mechanic where a lone awake Sleepyhead can peek at another player's dice for a bonus point.
+- **Phase 5 (Cheese Thief):** Implemented a complex social deduction game with secret roles (Thief, Sleepyhead, Fall Mouse, Accomplice), dice rolling, and a multi-phase night.
 - **Audio Engine:** Added a lightweight, synthesized sound system using Web Audio API for immersive feedback (dice, reveals, phase transitions).
 - **Responsive Video:** Optimized `VideoGrid` with dynamic tile sizing and refined mobile layouts for 8+ players.
 - **Enhanced Summaries:** Added "Game Over" voting breakdowns and "Return to Lobby" flows for all games.
@@ -37,6 +37,8 @@ We have successfully moved from a conceptual architecture to a fully functional 
 - **Scoring Freedom:** Added manual score adjustment buttons (+/-) for the host to correct game errors or reward "house rules."
 - **Lobby Exit:** Added a `BACK_TO_LOBBY` global action to allow cleanly resetting a session without leaving the room.
 - **Mobile Grid:** Dynamic video tile resizing for 8+ players.
+- **Cheese Thief Expansion:** Added **Fall Mouse (Joker)** and **Accomplice** roles. Lowered minimum players to 3 for both games.
+- **Mobile Video Fallback:** Added a generic camera fallback and troubleshooting UI for mobile browsers.
 
 ---
 
@@ -53,4 +55,3 @@ We have successfully moved from a conceptual architecture to a fully functional 
 3.  **Refinement:**
     - [ ] Add "Host Handover" if the original host leaves.
     - [ ] Implement Offline-first (Service Worker) for better PWA support.
-
