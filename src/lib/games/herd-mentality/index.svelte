@@ -129,7 +129,6 @@
 						bind:value={myAnswer} 
 						placeholder="Think like the herd..." 
 						onkeydown={(e) => e.key === 'Enter' && submitAnswer()}
-						autofocus
 					/>
 					<button class="btn-primary-cozy" onclick={submitAnswer}>Submit</button>
 				</div>

@@ -8,19 +8,22 @@
 		state: GameState;
 		selfId: string;
 		mode?: 'grid' | 'headless';
+		localStream?: MediaStream | null;
+		remoteStreams?: Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>;
 	}
 
-	let { state: gameState, selfId, mode = 'grid' }: Props = $props();
+	let { 
+		state: gameState, 
+		selfId, 
+		mode = 'grid',
+		localStream = $bindable(null),
+		remoteStreams = $bindable(new Map())
+	}: Props = $props();
 
-	// ─── Local Stream ────────────────────────────────────────────────────────
-	export let localStream: MediaStream | null = $state(null);
+	// ─── Local State ────────────────────────────────────────────────────────
 	let audioEnabled = $state(true);
 	let videoEnabled = $state(true);
 	let videoError = $state(false);
-
-	// ─── Remote Streams ──────────────────────────────────────────────────────
-	// Map of peerId -> { stream: MediaStream, status: string }
-	export let remoteStreams = $state(new Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>());
 
 	let cleanupFns: Array<() => void> = [];
 
