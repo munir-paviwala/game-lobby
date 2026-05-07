@@ -265,14 +265,14 @@
 	<div class="room-blob" aria-hidden="true"></div>
 
 	<!-- Header -->
-	<header class="room-header">
+	<header class="room-header" class:is-playing={$isPlaying}>
 		<div class="brand">🎲 Game Lobby</div>
 		<RoomCode {roomId} />
 		<button class="btn-ghost leave-btn" id="btn-leave-room" onclick={handleLeave}>Leave</button>
 	</header>
 
 	<!-- Main content -->
-	<div class="room-body" class:pre-join={!hasJoined}>
+	<div class="room-body" class:pre-join={!hasJoined} class:is-playing={$isPlaying}>
 		<!-- Status / connecting -->
 		{#if connectionStatus === 'connecting'}
 			<div class="status-card card" role="status">
@@ -463,11 +463,18 @@
 		align-items: center;
 		gap: 1rem;
 		padding: 1rem 1.5rem;
-		border-bottom: 1px solid rgba(255, 255, 255, 0.07);
-		background: rgba(13, 13, 20, 0.7);
-		backdrop-filter: blur(12px);
-		-webkit-backdrop-filter: blur(12px);
 		flex-wrap: wrap;
+		transition: all var(--transition-md);
+	}
+
+	.room-header.is-playing {
+		padding: 0.5rem 1rem;
+		background: rgba(13, 13, 20, 0.4);
+	}
+
+	.room-header.is-playing .brand {
+		font-size: 0.8rem;
+		opacity: 0.5;
 	}
 
 	.brand {
@@ -499,9 +506,17 @@
 		gap: 1.25rem;
 		padding: 1.5rem;
 		max-width: 900px;
+		transition: max-width var(--transition-slow);
 		margin: 0 auto;
 		width: 100%;
 		align-content: start;
+	}
+
+	.room-body.is-playing {
+		max-width: 1800px;
+		display: flex;
+		flex-direction: column;
+		padding: 0.5rem;
 	}
 
 	@media (max-width: 640px) {

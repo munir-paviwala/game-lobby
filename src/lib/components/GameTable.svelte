@@ -37,8 +37,8 @@
 	function getPosition(index: number, total: number) {
 		if (total === 0) return { x: 50, y: 50 };
 		const angle = (index / total) * 2 * Math.PI + (Math.PI / 2);
-		const a = 44; 
-		const b = 38;
+		const a = 48; 
+		const b = 44;
 		return { x: 50 + a * Math.cos(angle), y: 50 + b * Math.sin(angle) };
 	}
 
@@ -59,10 +59,12 @@
 	style:--bg-table={theme.background}
 	style:--text-table={theme.text}
 >
-	<div class="table-surface">
-		<div class="inner-shadow"></div>
-		<div class="game-content">
-			{@render children?.()}
+	<div class="table-surface-outer">
+		<div class="table-surface">
+			<div class="inner-glow"></div>
+			<div class="game-content">
+				{@render children?.()}
+			</div>
 		</div>
 	</div>
 
@@ -76,7 +78,7 @@
 			style:top="{pos.y}%"
 		>
 			<div class="seat-wrapper">
-				<div class="video-tile-container">
+				<div class="video-tile-container" class:asleep={isAsleep(player.id)}>
 					<VideoTile 
 						{stream} 
 						peerId={player.id} 
@@ -88,6 +90,7 @@
 					/>
 				</div>
 				<div class="player-info-bubble">
+					<span class="p-name-small">{player.name}</span>
 					<span class="score">{state.scores[player.id] ?? 0} pts</span>
 				</div>
 			</div>
@@ -99,48 +102,63 @@
 	.game-table {
 		position: relative;
 		width: 100%;
-		height: 85vh;
-		max-height: 900px;
+		height: 90vh;
+		min-height: 600px;
+		max-height: 1200px;
 		margin: 0 auto;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		overflow: visible;
+		perspective: 1000px;
+	}
+
+	.table-surface-outer {
+		width: 85%;
+		height: 75%;
+		position: relative;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transform: rotateX(15deg);
+		z-index: 1;
 	}
 
 	.table-surface {
 		position: relative;
-		width: 75%;
-		height: 65%;
-		background: var(--bg-table);
-		border-radius: 200px / 140px;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, var(--bg-table) 0%, rgba(15, 23, 42, 0.95) 100%);
+		border-radius: 300px / 200px;
 		box-shadow: 
-			0 30px 60px rgba(0,0,0,0.5),
-			inset 0 0 50px rgba(0,0,0,0.3);
-		border: 10px solid rgba(255,255,255,0.08);
+			0 40px 100px rgba(0,0,0,0.6),
+			0 0 0 10px rgba(255,255,255,0.03),
+			inset 0 0 80px rgba(0,0,0,0.4);
+		border: 2px solid rgba(255,255,255,0.08);
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-		z-index: 1;
 	}
 
-	.inner-shadow {
+	.inner-glow {
 		position: absolute;
-		inset: 0;
+		inset: 20px;
 		border-radius: inherit;
-		box-shadow: inset 0 2px 20px rgba(255,255,255,0.1);
+		box-shadow: inset 0 0 40px var(--primary);
+		opacity: 0.15;
 		pointer-events: none;
 	}
 
 	.game-content {
-		width: 90%;
-		height: 90%;
+		width: 85%;
+		height: 80%;
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		justify-content: center;
 		color: var(--text-table);
+		z-index: 5;
 	}
 
 	.player-seat {
@@ -158,37 +176,79 @@
 	}
 
 	.video-tile-container {
-		width: 140px;
-		height: 105px;
+		width: 160px;
+		height: 120px;
 		background: #111;
-		border-radius: 16px;
-		border: 4px solid rgba(255,255,255,0.1);
+		border-radius: 20px;
+		border: 3px solid rgba(255,255,255,0.08);
 		position: relative;
 		overflow: hidden;
-		box-shadow: 0 15px 30px rgba(0,0,0,0.4);
-		transition: all 0.4s ease;
+		box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+		transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.video-tile-container.asleep {
+		transform: scale(0.9);
+		opacity: 0.8;
+		border-color: rgba(255, 255, 255, 0.05);
 	}
 
 	.player-info-bubble {
-		background: var(--primary);
+		background: rgba(0, 0, 0, 0.6);
+		backdrop-filter: blur(8px);
+		-webkit-backdrop-filter: blur(8px);
 		color: #fff;
-		padding: 0.2rem 0.8rem;
-		border-radius: 20px;
+		padding: 0.35rem 0.8rem;
+		border-radius: 30px;
 		font-size: 0.8rem;
-		font-weight: 700;
+		font-weight: 600;
 		box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-		border: 2px solid rgba(255,255,255,0.1);
+		border: 1px solid rgba(255,255,255,0.1);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		min-width: 100px;
+	}
+
+	.p-name-small {
+		font-size: 0.7rem;
+		opacity: 0.6;
+		text-transform: uppercase;
+		letter-spacing: 0.05em;
+	}
+
+	.score {
+		font-weight: 800;
+		color: var(--color-gold, #f0b429);
 	}
 
 	.is-self .video-tile-container {
-		transform: scale(1.15);
+		transform: scale(1.2);
 		border-color: var(--accent);
-		box-shadow: 0 0 30px var(--accent), 0 20px 40px rgba(0,0,0,0.5);
+		box-shadow: 
+			0 0 40px var(--color-accent-glow),
+			0 25px 50px rgba(0,0,0,0.6);
 		z-index: 10;
 	}
 
+	.is-self .player-info-bubble {
+		background: var(--accent);
+		border-color: rgba(255,255,255,0.2);
+		transform: translateY(-5px);
+	}
+
+	.is-self .score {
+		color: #fff;
+	}
+
+	@media (max-width: 1024px) {
+		.table-surface-outer { width: 90%; height: 60%; }
+		.video-tile-container { width: 130px; height: 98px; }
+	}
+
 	@media (max-width: 768px) {
-		.table-surface { width: 90%; height: 50%; }
+		.table-surface-outer { width: 95%; height: 50%; }
 		.video-tile-container { width: 100px; height: 75px; }
+		.player-info-bubble { min-width: 80px; padding: 0.2rem 0.5rem; }
 	}
 </style>
