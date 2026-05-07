@@ -13,7 +13,10 @@ const config = {
 			assets: 'build',
 			// Serve this page when no route matches (needed for GH Pages SPA routing)
 			fallback: '404.html'
-		})
+		}),
+		paths: {
+			base: process.env.NODE_ENV === 'production' ? '/game-lobby' : ''
+		}
 	}
 };
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { goto } from '$app/navigation';
 </script>
 
@@ -24,11 +25,11 @@
 		</p>
 
 		<div class="cta-group">
-			<a href="/lobby/" class="btn-primary" id="cta-create">
+			<a href="{base}/lobby/" class="btn-primary" id="cta-create">
 				<span>Create a Room</span>
 				<span class="arrow">→</span>
 			</a>
-			<a href="/lobby/?join=true" class="btn-ghost" id="cta-join">Join a Room</a>
+			<a href="{base}/lobby/?join=true" class="btn-ghost" id="cta-join">Join a Room</a>
 		</div>
 	</div>
 

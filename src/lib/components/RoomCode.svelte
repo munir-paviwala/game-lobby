@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { base } from '$app/paths';
+
 	interface Props {
 		roomId: string;
 	}
@@ -9,7 +11,8 @@
 
 	async function copy() {
 		const url = new URL(window.location.href);
-		url.pathname = `/room/${roomId}/`;
+		// Ensure the path includes the base prefix
+		url.pathname = `${base}/room/${roomId}/`;
 		url.search = '';
 		await navigator.clipboard.writeText(url.toString());
 		copied = true;

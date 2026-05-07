@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
 	import { hashPassword } from '$lib/engine/crypto';
@@ -69,7 +70,7 @@
 			});
 			saveSession();
 
-			await goto(`/room/${roomId}/`);
+			await goto(`${base}/room/${roomId}/`);
 		} catch (e) {
 			errorMsg = 'Something went wrong. Please try again.';
 		} finally {
@@ -101,7 +102,7 @@
 			});
 			saveSession();
 
-			await goto(`/room/${roomId}/`);
+			await goto(`${base}/room/${roomId}/`);
 		} catch (e) {
 			errorMsg = 'Something went wrong. Please try again.';
 		} finally {
@@ -118,7 +119,7 @@
 <main class="lobby-page">
 	<div class="blob blob-1" aria-hidden="true"></div>
 
-	<a href="/" class="back-link">← Back</a>
+	<a href="{base}/" class="back-link">← Back</a>
 
 	<div class="lobby-card card">
 		<h1 class="card-title">

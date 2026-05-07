@@ -15,6 +15,7 @@ We have successfully moved from a conceptual architecture to a fully functional 
 - **Enhanced Summaries:** Added "Game Over" voting breakdowns and "Return to Lobby" flows for all games.
 - **Privacy First:** Documented the P2P privacy model and camera/mic security in `PRIVACY.md`.
 - **Shareable Rooms:** Integrated "Copy Link" functionality into the `RoomCode` component.
+- **GH Pages Fix:** Resolved 404 errors by configuring `paths.base` and migrating all links to use the `$app/paths` prefix.
 
 ---
 
@@ -25,6 +26,7 @@ We have successfully moved from a conceptual architecture to a fully functional 
 3.  **Local-First / Serverless:** No backend is used. Connectivity is established via Nostr relays (Trystero), and data persistence is handled via `localStorage`.
 4.  **Static SSL for Mobile:** Configured `vite-plugin-basic-ssl` and network exposure to allow `getUserMedia` testing on mobile devices over local IP, bypassing the browser's "Secure Context" requirement.
 5.  **Synthesized Audio:** Use Web Audio API oscillators and noise buffers instead of external assets to keep the bundle small and zero-dependency.
+6.  **Base Path Routing:** Explicitly configured `/game-lobby` as the base path for production to ensure compatibility with GitHub Pages' subfolder hosting.
 
 ---
 

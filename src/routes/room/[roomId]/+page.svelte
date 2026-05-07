@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { fade } from 'svelte/transition';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 
 	import {
 		joinRoom,
@@ -48,7 +49,7 @@
 
 	onMount(async () => {
 		if (!$playerName || !$roomMeta) {
-			goto('/lobby/');
+			goto(`${base}/lobby/`);
 			return;
 		}
 
@@ -216,7 +217,7 @@
 		leaveRoom();
 		resetState();
 		clearSession();
-		goto('/');
+		goto(`${base}/`);
 	}
 
 	// ─── Host Actions ──────────────────────────────────────────────────────────
@@ -271,7 +272,7 @@
 			<div class="status-card card error" role="alert">
 				<span class="status-icon">⚠️</span>
 				<p>{errorMsg}</p>
-				<button class="btn-primary" onclick={() => goto('/lobby/')}>Back to Lobby</button>
+				<button class="btn-primary" onclick={() => goto(`${base}/lobby/`)}>Back to Lobby</button>
 			</div>
 
 		{:else}
