@@ -38,16 +38,24 @@
 
 	onMount(async () => {
 		try {
-			// Request local camera and mic
+			// Optimization: Use lower resolution for P2P mesh stability
 			const constraints = {
-				video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: 'user' },
-				audio: true
+				video: { 
+					width: { ideal: 320 }, 
+					height: { ideal: 240 }, 
+					frameRate: { ideal: 15 },
+					facingMode: 'user' 
+				},
+				audio: {
+					echoCancellation: true,
+					noiseSuppression: true
+				}
 			};
 			
 			try {
 				localStream = await navigator.mediaDevices.getUserMedia(constraints);
 			} catch (firstErr) {
-				console.warn('Front camera failed, trying any camera...', firstErr);
+				console.warn('Optimized constraints failed, trying basic...', firstErr);
 				localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
 			}
 
@@ -55,7 +63,7 @@
 				localVideoNode.srcObject = localStream;
 			}
 
-			// Share with peers
+			// IMPORTANT: Immediately add stream so Trystero can negotiate with existing peers
 			addStream(localStream);
 		} catch (e) {
 			console.error('Failed to get user media:', e);
@@ -63,16 +71,17 @@
 		}
 
 		// Handle incoming streams
-		cleanupFns.push(
-			onPeerStream((stream, peerId) => {
-				remoteStreams = { ...remoteStreams, [peerId]: stream };
-			}),
-			onPeerLeave((peerId) => {
-				const copy = { ...remoteStreams };
-				delete copy[peerId];
-				remoteStreams = copy;
-			})
-		);
+		const streamCleanup = onPeerStream((stream, peerId) => {
+			remoteStreams = { ...remoteStreams, [peerId]: stream };
+		});
+
+		const leaveCleanup = onPeerLeave((peerId) => {
+			const copy = { ...remoteStreams };
+			delete copy[peerId];
+			remoteStreams = copy;
+		});
+
+		cleanupFns.push(streamCleanup, leaveCleanup);
 	});
 
 	onDestroy(() => {
@@ -115,6 +124,11 @@
 			});
 		}
 	});
+
+	/** Export the stream for the parent to share on join */
+	export function getStream() {
+		return localStream;
+	}
 
 	const playerCount = $derived(Object.keys(remoteStreams).length + 1);
 	const minWidth = $derived(playerCount > 6 ? '70px' : (playerCount > 4 ? '100px' : '140px'));

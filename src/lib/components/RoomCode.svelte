@@ -14,8 +14,28 @@
 		// Ensure the path includes the base prefix
 		url.pathname = `${base}/room/${roomId}/`;
 		url.search = '';
-		await navigator.clipboard.writeText(url.toString());
-		copied = true;
+		
+		const inviteMessage = `Join my game on Game Lobby!\nRoom Code: ${roomId}\nLink: ${url.toString()}`;
+		
+		try {
+			await navigator.clipboard.writeText(inviteMessage);
+			copied = true;
+		} catch (err) {
+			console.error('Clipboard failed, trying fallback...', err);
+			// Fallback for older browsers or insecure contexts
+			const textArea = document.createElement("textarea");
+			textArea.value = inviteMessage;
+			document.body.appendChild(textArea);
+			textArea.select();
+			try {
+				document.execCommand('copy');
+				copied = true;
+			} catch (e) {
+				console.error('Fallback failed', e);
+			}
+			document.body.removeChild(textArea);
+		}
+		
 		setTimeout(() => (copied = false), 2000);
 	}
 </script>
@@ -27,7 +47,7 @@
 		{#if copied}
 			<span>✓ Copied!</span>
 		{:else}
-			<span>Copy Link</span>
+			<span>Copy Invite</span>
 		{/if}
 	</button>
 </div>

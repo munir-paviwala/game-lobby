@@ -43,6 +43,9 @@
 	let connectionStatus = $state<'connecting' | 'connected' | 'error'>('connecting');
 	let errorMsg = $state('');
 	let selfPeerId = $state('');
+	let hasJoined = $state(false);
+	let loadingJoin = $state(false);
+	let videoGrid: any = $state(null);
 
 	// ─── Lifecycle ────────────────────────────────────────────────────────────
 	let cleanupFns: Array<() => void> = [];
@@ -53,9 +56,21 @@
 			return;
 		}
 
+		// Initial "connection" is just loading the local preview
+		connectionStatus = 'connected';
+	});
+
+	async function handleJoinRoom() {
 		try {
+			loadingJoin = true;
 			await joinRoom(roomId);
 			selfPeerId = selfId();
+
+			// Share our stream that was already initialized in pre-join
+			const stream = videoGrid?.getStream();
+			if (stream) {
+				addStream(stream);
+			}
 
 			// Register event handlers
 			cleanupFns.push(
@@ -82,12 +97,14 @@
 				hostPeerId.set(selfPeerId);
 			}
 
-			connectionStatus = 'connected';
+			hasJoined = true;
 		} catch (e) {
 			connectionStatus = 'error';
 			errorMsg = 'Failed to connect. Check your internet connection and try again.';
+		} finally {
+			loadingJoin = false;
 		}
-	});
+	}
 
 	onDestroy(() => {
 		cleanupFns.forEach((fn) => fn());
@@ -260,12 +277,12 @@
 	</header>
 
 	<!-- Main content -->
-	<div class="room-body">
+	<div class="room-body" class:pre-join={!hasJoined}>
 		<!-- Status / connecting -->
 		{#if connectionStatus === 'connecting'}
 			<div class="status-card card" role="status">
 				<div class="status-spinner"></div>
-				<p>Connecting to room <strong>{roomId}</strong>…</p>
+				<p>Setting up room <strong>{roomId}</strong>…</p>
 			</div>
 
 		{:else if connectionStatus === 'error'}
@@ -276,9 +293,32 @@
 			</div>
 
 		{:else}
-			<VideoGrid state={$gameState} selfId={selfPeerId} />
+			<div class="video-wrapper">
+				<VideoGrid bind:this={videoGrid} state={$gameState} selfId={selfPeerId} />
+			</div>
 
-			{#if !$isPlaying}
+			{#if !hasJoined}
+				<section class="pre-join-card card">
+					<h2>Ready to join?</h2>
+					<p>Check your camera and microphone above, then jump into the room.</p>
+					
+					<div class="player-preview">
+						<span class="preview-name">Joining as <strong>{$playerName}</strong></span>
+					</div>
+
+					<button 
+						class="btn-primary join-btn-large" 
+						onclick={handleJoinRoom}
+						disabled={loadingJoin}
+					>
+						{#if loadingJoin}
+							<span class="spinner"></span> Joining...
+						{:else}
+							Join Room →
+						{/if}
+					</button>
+				</section>
+			{:else if !$isPlaying}
 				<!-- Players panel -->
 				<section class="players-panel card" aria-label="Players in room">
 					<div class="panel-header">
@@ -455,6 +495,42 @@
 		.room-body {
 			grid-template-columns: 1fr;
 		}
+	}
+
+	.room-body.pre-join {
+		grid-template-columns: 1fr;
+		max-width: 500px;
+	}
+
+	.video-wrapper {
+		grid-column: 1 / -1;
+	}
+
+	.pre-join-card {
+		padding: 2.5rem 2rem;
+		text-align: center;
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		animation: slide-up 0.4s ease-out;
+	}
+
+	@keyframes slide-up {
+		from { opacity: 0; transform: translateY(20px); }
+		to { opacity: 1; transform: translateY(0); }
+	}
+
+	.join-btn-large {
+		padding: 1.25rem;
+		font-size: 1.25rem;
+		width: 100%;
+	}
+
+	.player-preview {
+		background: rgba(255, 255, 255, 0.05);
+		padding: 0.75rem;
+		border-radius: var(--radius-sm);
+		color: var(--color-text-muted);
 	}
 
 	/* Status cards */
