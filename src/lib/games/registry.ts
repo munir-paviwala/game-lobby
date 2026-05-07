@@ -5,7 +5,7 @@
  */
 
 import type { Component } from 'svelte';
-import type { GameState, Action } from '$lib/engine/types';
+import type { GameState, Action, GameTheme } from '$lib/engine/types';
 
 // ─── Game Module Interface ────────────────────────────────────────────────────
 
@@ -21,6 +21,8 @@ export interface GameModule {
 	/** Min/max player counts */
 	minPlayers: number;
 	maxPlayers: number;
+	/** Visual styling for the "tabletop" UI */
+	theme: GameTheme;
 	/**
 	 * The main Svelte component for this game.
 	 * Receives the full gameState and an onAction callback as props.
@@ -57,6 +59,13 @@ const registry: GameModule[] = [
 		emoji: '🐄',
 		minPlayers: 3,
 		maxPlayers: 20,
+		theme: {
+			primary: '#424242',      // Cow Black
+			secondary: '#F5F5F5',    // Cream White
+			accent: '#F48FB1',       // Udder Pink
+			background: '#E0E0E0',   // Light Grey
+			text: '#212121'
+		},
 		component: HerdMentality as unknown as GameModule['component'],
 		reducer: hmReducer
 	},
@@ -67,6 +76,13 @@ const registry: GameModule[] = [
 		emoji: '🧀',
 		minPlayers: 3,
 		maxPlayers: 8,
+		theme: {
+			primary: '#FBC02D',      // Cheese Yellow
+			secondary: '#FFF9C4',    // Pastel Yellow
+			accent: '#FF7043',       // Deep Orange
+			background: '#FFF3E0',   // Warm Parchment
+			text: '#4E342E'
+		},
 		component: CheeseThief as unknown as GameModule['component'],
 		reducer: ctReducer
 	}

@@ -87,54 +87,58 @@
 	}
 </script>
 
-<div class="herd-mentality card">
-	<header class="game-header">
-		<h2>🐄 Herd Mentality</h2>
-		<span class="round">Round {data.round}</span>
+<div class="herd-mentality-board">
+	<header class="game-info-overlay">
+		<span class="round-badge">Round {data.round}</span>
 	</header>
 
 	{#if data.phase === 'picking'}
 		{#if isHost}
-			<div class="picking-view">
-				<h3>Pick a prompt for this round:</h3>
+			<div class="picking-view" in:fade>
+				<h3 class="table-label">Host: Pick a prompt</h3>
 				<div class="prompts">
 					{#each hostPrompts as p}
-						<button class="btn-ghost prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
+						<button class="paper-btn prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
 					{/each}
 				</div>
 			</div>
 		{:else}
-			<div class="waiting-view">
+			<div class="waiting-view" in:fade>
 				<p>Waiting for the host to pick a prompt...</p>
 			</div>
 		{/if}
 
 	{:else if data.phase === 'answering'}
-		<div class="answering-view">
-			<h3 class="prompt-text">"{data.prompt}"</h3>
+		<div class="answering-view" in:fade>
+			<div class="main-prompt">
+				<h3 class="prompt-text">"{data.prompt}"</h3>
+			</div>
 			
 			{#if hasSubmitted}
 				<div class="waiting-view">
-					<p>Answer submitted! Waiting for others...</p>
-					<p class="progress">{Object.keys(data.answers).length} / {players.length} answered</p>
+					<p>Answer submitted! 🐄</p>
+					<div class="progress-bar">
+						<div class="progress-fill" style:width="{(Object.keys(data.answers).length / players.length) * 100}%"></div>
+					</div>
+					<p class="progress-text">{Object.keys(data.answers).length} / {players.length} answered</p>
 				</div>
 			{:else}
-				<div class="input-row">
+				<div class="input-area">
 					<input 
 						type="text" 
 						bind:value={myAnswer} 
 						placeholder="Think like the herd..." 
 						onkeydown={(e) => e.key === 'Enter' && submitAnswer()}
+						autofocus
 					/>
-					<button class="btn-primary" onclick={submitAnswer}>Submit</button>
+					<button class="btn-primary-cozy" onclick={submitAnswer}>Submit</button>
 				</div>
 			{/if}
 
 			{#if isHost}
 				<div class="host-panel">
-					<p>{Object.keys(data.answers).length} of {players.length} players have answered.</p>
 					<button 
-						class="btn-primary" 
+						class="btn-primary-cozy" 
 						disabled={Object.keys(data.answers).length === 0}
 						onclick={revealAnswers}
 					>
@@ -145,182 +149,214 @@
 		</div>
 
 	{:else if data.phase === 'revealing'}
-		<div class="revealing-view">
-			<h3 class="prompt-text">"{data.prompt}"</h3>
+		<div class="revealing-view" in:fade>
+			<h3 class="prompt-text-small">"{data.prompt}"</h3>
 			
 			{#if data.majorityAnswer === null}
 				<div class="no-herd">
-					<p>No herd mentality this round! Everyone answered differently.</p>
+					<p>No herd mentality! Everyone went rogue. 🚫🐄</p>
+				</div>
+			{:else}
+				<div class="majority-reveal">
+					<span class="label">The Herd said:</span>
+					<span class="majority-text">{data.majorityAnswer}</span>
 				</div>
 			{/if}
 
-			<div class="answers-grid">
-				{#each players as peerId}
-					{@const ans = data.answers[peerId] || 'No answer'}
-					{@const isMajority = data.majorityAnswer !== null && ans.toLowerCase().trim() === data.majorityAnswer}
-					<div class="answer-card" class:is-majority={isMajority}>
-						<div class="player-name">{gameState.players[peerId]?.name}</div>
-						<div class="answer">{ans}</div>
-						{#if isMajority}
-							<div class="points">+1</div>
-						{/if}
-					</div>
-				{/each}
+			<div class="host-actions-overlay">
+				{#if isHost}
+					<button class="btn-primary-cozy" onclick={nextRound}>Next Round →</button>
+					<button class="btn-ghost-cozy" onclick={backToLobby}>Lobby</button>
+				{/if}
 			</div>
-
-			{#if isHost}
-				<div class="host-panel mt-4">
-					<button class="btn-primary" onclick={nextRound}>Next Round →</button>
-					<button class="btn-ghost" onclick={backToLobby}>Return to Lobby</button>
-				</div>
-			{/if}
 		</div>
 	{/if}
 </div>
 
 <style>
-	.herd-mentality {
-		grid-column: 1 / -1;
-		padding: 2rem;
+	.herd-mentality-board {
+		width: 100%;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 2rem;
-		animation: fade-in 0.3s ease;
-	}
-	@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-
-	.game-header {
-		display: flex;
-		justify-content: space-between;
 		align-items: center;
-		border-bottom: 1px solid rgba(255,255,255,0.1);
-		padding-bottom: 1rem;
+		justify-content: center;
+		padding: 1rem;
+		position: relative;
 	}
-	.game-header h2 { font-size: 1.5rem; margin: 0; }
-	.round { color: var(--color-accent-light); font-weight: bold; }
-	
-	.prompt-text {
-		font-size: 1.8rem;
-		text-align: center;
-		margin-bottom: 2rem;
+
+	.game-info-overlay {
+		position: absolute;
+		top: -2rem;
+		left: 50%;
+		transform: translateX(-50%);
+	}
+
+	.round-badge {
+		background: var(--accent);
 		color: #fff;
-		font-weight: 500;
+		padding: 0.25rem 1rem;
+		border-radius: 20px;
+		font-weight: bold;
+		font-size: 0.9rem;
+		box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+	}
+
+	.table-label {
+		text-align: center;
+		color: var(--primary);
+		text-transform: uppercase;
+		font-size: 0.8rem;
+		letter-spacing: 0.1em;
+		margin-bottom: 1rem;
+	}
+
+	.main-prompt {
+		background: #fff;
+		padding: 2rem;
+		border-radius: 4px;
+		box-shadow: 0 10px 30px rgba(0,0,0,0.2), 0 2px 5px rgba(0,0,0,0.1);
+		transform: rotate(-1deg);
+		margin-bottom: 2rem;
+		border: 1px solid #ddd;
+	}
+
+	.prompt-text {
+		font-size: 2rem;
+		color: #222;
+		margin: 0;
+		text-align: center;
+		font-family: 'Comfortaa', sans-serif; /* Example cozy font */
+	}
+
+	.prompt-text-small {
+		font-size: 1.2rem;
+		color: rgba(0,0,0,0.4);
+		margin-bottom: 1.5rem;
+		text-align: center;
+	}
+
+	.paper-btn {
+		background: #fff;
+		border: 1px solid #ddd;
+		padding: 1rem 1.5rem;
+		border-radius: 2px;
+		font-size: 1.1rem;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+		color: #333;
+		text-align: left;
+	}
+
+	.paper-btn:hover {
+		transform: translateY(-2px) rotate(1deg);
+		box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+		border-color: var(--accent);
 	}
 
 	.prompts {
 		display: flex;
 		flex-direction: column;
-		gap: 1rem;
-		margin-top: 1.5rem;
-	}
-	.prompt-btn {
-		text-align: left;
-		padding: 1.25rem;
-		font-size: 1.1rem;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.1);
-		border-radius: var(--radius-md);
-		transition: all 0.2s ease;
-		cursor: pointer;
-		color: var(--color-text);
-	}
-	.prompt-btn:hover {
-		background: rgba(255,255,255,0.1);
-		border-color: var(--color-accent);
-		transform: translateX(4px);
+		gap: 0.75rem;
+		max-width: 400px;
 	}
 
-	.input-row {
+	.input-area {
 		display: flex;
-		gap: 1rem;
-		max-width: 500px;
-		margin: 0 auto;
+		gap: 0.5rem;
+		background: rgba(255,255,255,0.1);
+		padding: 0.5rem;
+		border-radius: 50px;
+		border: 2px solid rgba(255,255,255,0.2);
 	}
-	.input-row input {
-		flex: 1;
-		padding: 0.8rem 1rem;
-		border-radius: var(--radius-sm);
-		border: 1px solid rgba(255,255,255,0.2);
-		background: rgba(0,0,0,0.2);
+
+	.input-area input {
+		background: transparent;
+		border: none;
+		padding: 0.75rem 1.5rem;
 		color: #fff;
 		font-size: 1.1rem;
 		outline: none;
-	}
-	.input-row input:focus {
-		border-color: var(--color-accent);
+		width: 250px;
 	}
 
-	.waiting-view {
-		text-align: center;
-		color: var(--color-text-muted);
-		padding: 2rem;
-		background: rgba(0,0,0,0.1);
-		border-radius: var(--radius-md);
+	.btn-primary-cozy {
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 50px;
+		font-weight: bold;
+		cursor: pointer;
+		transition: all 0.2s ease;
 	}
-	.progress { margin-top: 0.5rem; font-weight: bold; color: #fff; }
 
-	.host-panel {
-		margin-top: 2rem;
-		padding-top: 1.5rem;
-		border-top: 1px dashed rgba(255,255,255,0.2);
-		text-align: center;
+	.btn-primary-cozy:hover {
+		transform: scale(1.05);
+		filter: brightness(1.1);
+	}
+
+	.progress-bar {
+		width: 200px;
+		height: 8px;
+		background: rgba(255,255,255,0.1);
+		border-radius: 4px;
+		margin: 1rem 0;
+		overflow: hidden;
+	}
+
+	.progress-fill {
+		height: 100%;
+		background: var(--accent);
+		transition: width 0.5s ease;
+	}
+
+	.progress-text {
+		font-size: 0.8rem;
+		opacity: 0.7;
+	}
+
+	.majority-reveal {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
-		gap: 1rem;
+		gap: 0.5rem;
+		animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 	}
 
-	.no-herd {
-		text-align: center;
-		color: var(--color-error);
-		margin-bottom: 2rem;
-		font-weight: bold;
-		font-size: 1.2rem;
-	}
-
-	.answers-grid {
-		display: grid;
-		grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-		gap: 1rem;
-	}
-	.answer-card {
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.1);
-		padding: 1.5rem;
-		border-radius: var(--radius-md);
-		position: relative;
-		text-align: center;
-		transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-	}
-	.answer-card.is-majority {
-		background: rgba(45, 212, 161, 0.15);
-		border-color: var(--color-success);
-		transform: scale(1.05);
-		z-index: 2;
-	}
-	.player-name {
-		font-size: 0.8rem;
-		color: var(--color-text-muted);
-		margin-bottom: 0.75rem;
+	.majority-text {
+		font-size: 3rem;
+		font-weight: 900;
 		text-transform: uppercase;
-		letter-spacing: 0.05em;
+		color: var(--accent);
+		text-shadow: 0 10px 20px rgba(0,0,0,0.2);
 	}
-	.answer {
-		font-size: 1.4rem;
-		font-weight: bold;
-		color: #fff;
-	}
-	.points {
-		position: absolute;
-		top: -0.75rem;
-		right: -0.75rem;
-		background: var(--color-success);
-		color: #000;
-		font-weight: bold;
-		padding: 0.3rem 0.6rem;
-		border-radius: 12px;
+
+	.label {
 		font-size: 0.9rem;
-		box-shadow: 0 4px 12px rgba(45, 212, 161, 0.3);
+		text-transform: uppercase;
+		letter-spacing: 0.2em;
+		opacity: 0.6;
 	}
-	.mt-4 { margin-top: 2rem; }
+
+	@keyframes pop-in {
+		from { transform: scale(0.5); opacity: 0; }
+		to { transform: scale(1); opacity: 1; }
+	}
+
+	.host-actions-overlay {
+		margin-top: 3rem;
+		display: flex;
+		gap: 1rem;
+	}
+
+	.btn-ghost-cozy {
+		background: transparent;
+		border: 2px solid rgba(255,255,255,0.2);
+		color: #fff;
+		padding: 0.75rem 1.5rem;
+		border-radius: 50px;
+		cursor: pointer;
+	}
 </style>

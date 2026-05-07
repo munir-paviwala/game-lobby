@@ -30,10 +30,22 @@ import type {
  */
 const APP_ID = 'io.github.munir-paviwala.game-lobby';
 
+/**
+ * Stable public Nostr relays to ensure all peers find each other.
+ * Using multiple high-availability relays reduces "different room" syndrome.
+ */
+const RELAYS = [
+	'wss://relay.damus.io',
+	'wss://nos.lol',
+	'wss://relay.snort.social',
+	'wss://purplepag.es'
+];
+
 // ─── Module state ─────────────────────────────────────────────────────────────
 
 let currentRoom: Room | null = null;
 let currentRoomId: string | null = null;
+
 
 type MessageHandler = (message: PeerMessage, peerId: string) => void;
 const messageHandlers: Set<MessageHandler> = new Set();
@@ -52,12 +64,14 @@ const streamHandlers: Set<StreamHandler> = new Set();
  * If already in a different room, leaves first.
  */
 export async function joinRoom(roomId: string): Promise<void> {
-	if (currentRoomId === roomId && currentRoom) return;
+	const cleanId = roomId.trim().toLowerCase();
+	if (currentRoomId === cleanId && currentRoom) return;
 	if (currentRoom) leaveRoom();
 
-	const room = trysteroJoin({ appId: APP_ID }, roomId);
+	console.log(`[P2P] Joining room: ${cleanId} on relays:`, RELAYS);
+	const room = trysteroJoin({ appId: APP_ID, relays: RELAYS }, cleanId);
 	currentRoom = room;
-	currentRoomId = roomId;
+	currentRoomId = cleanId;
 
 	const [, getMessage] = room.makeAction<any>('msg');
 

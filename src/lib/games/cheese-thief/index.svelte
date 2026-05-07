@@ -163,97 +163,101 @@
 	}
 </script>
 
-<div class="cheese-thief card">
-	<header class="game-header">
-		<h2>🧀 Cheese Thief</h2>
+<div class="cheese-thief-board" class:is-night={data.phase === 'night'}>
+	<header class="game-info-overlay">
+		<span class="phase-badge">{data.phase} phase</span>
 	</header>
 
 	{#if data.phase === 'setup'}
 		<div class="center-content">
-			<p>Host needs to assign roles...</p>
+			<p class="tavern-text">Waiting for the host to deal the roles...</p>
 			{#if isHost}
-				<button class="btn-primary mt" onclick={assignRoles}>Assign Roles</button>
+				<button class="btn-primary-cozy" onclick={assignRoles}>Deal Roles</button>
 			{/if}
 		</div>
 	{:else if data.phase === 'rolling'}
-		<div class="center-content">
-			<h3>Your Role: <span class="role">{data.roles[selfId]}</span></h3>
-			{#if data.roles[selfId] === 'thief'}
-				<p class="role-desc">You are the thief! You must steal the cheese during your wake hour.</p>
-			{:else if data.roles[selfId] === 'joker'}
-				<p class="role-desc">You are the Fall Mouse (Joker)! You win if you get voted out.</p>
-			{:else}
-				<p class="role-desc">You are a sleepyhead. Try to find out who stole the cheese.</p>
-			{/if}
+		<div class="center-content" in:fade>
+			<div class="role-reveal">
+				<span class="label">Your Secret Role</span>
+				<h3 class="role-text">{data.roles[selfId]}</h3>
+			</div>
 
-			<div class="dice-section">
+			<div class="dice-area">
 				{#if myDiceRoll}
-					<div class="dice-result">You rolled a {myDiceRoll}</div>
+					<div class="dice-visual" in:scale>
+						{myDiceRoll}
+					</div>
 				{:else}
-					<button class="btn-primary" onclick={rollDice}>Roll Dice</button>
+					<button class="roll-btn" onclick={rollDice}>Roll the Die 🎲</button>
 				{/if}
 			</div>
 
-			<p class="progress">{Object.keys(data.dice).length} / {players.length} rolled</p>
+			<div class="progress-bubble">
+				{Object.keys(data.dice).length} / {players.length} rolled
+			</div>
 
 			{#if isHost}
-				<button class="btn-primary mt" disabled={!allRolled} onclick={beginNight}>
-					Begin Night Phase
+				<button class="btn-primary-cozy mt-4" disabled={!allRolled} onclick={beginNight}>
+					Begin the Night
 				</button>
 			{/if}
 		</div>
 	{:else if data.phase === 'night'}
-		<div class="center-content night-mode">
-			<h3 class="hour">
-				{data.currentHour === 7 ? "Thief's Secret Choice" : `Night Phase - Hour ${data.currentHour}`}
+		<div class="center-content night-content" in:fade>
+			<h3 class="hour-text">
+				{data.currentHour === 7 ? "Thief's Secret Choice" : `Night Hour ${data.currentHour}`}
 			</h3>
 
 			{#if data.sleepingPeers.includes(selfId)}
 				<div class="sleep-status zzz">
 					{#if data.roles[selfId] === 'accomplice'}
-						You feel a tap on your shoulder... you are the ACCOMPLICE! 🤫
+						<p>A tap on your shoulder... 🤫</p>
+						<p class="small">You are the ACCOMPLICE!</p>
 					{:else}
-						You are fast asleep... 💤
+						<p>💤 Fast asleep...</p>
 					{/if}
 				</div>
 			{:else}
-				<div class="sleep-status awake">You are AWAKE! 👀</div>
+				<div class="sleep-status awake">
+					<p>👁️ You are AWAKE!</p>
+				</div>
 				
 				{@const awakePeers = players.filter(p => !data.sleepingPeers.includes(p))}
 				{#if data.roles[selfId] === 'thief'}
-					<div class="thief-actions mt">
+					<div class="thief-actions mt-4">
 						{#if data.currentHour === 7}
-							<p>Choose an accomplice to work with you.</p>
+							<p class="label">Choose your Accomplice</p>
 							{#if data.accompliceTarget}
-								<p class="mt">You chose <strong>{gameState.players[data.accompliceTarget]?.name}</strong></p>
+								<p class="target-name">You picked {gameState.players[data.accompliceTarget]?.name}</p>
 							{:else}
-								<div class="vote-grid mt">
+								<div class="choice-grid">
 									{#each players.filter(p => p !== selfId) as p}
-										<button class="btn-ghost vote-btn" onclick={() => chooseAccomplice(p)}>
-											Pick {gameState.players[p]?.name}
+										<button class="choice-btn" onclick={() => chooseAccomplice(p)}>
+											{gameState.players[p]?.name}
 										</button>
 									{/each}
 								</div>
 							{/if}
 						{:else if data.cheeseStolenBy}
-							<p>🧀 Cheese secured!</p>
+							<p class="success-text">🧀 Cheese secured!</p>
 						{:else}
-							<button class="btn-primary" onclick={stealCheese}>Steal the Cheese!</button>
+							<button class="btn-primary-cozy" onclick={stealCheese}>Steal the Cheese!</button>
 						{/if}
 					</div>
 				{:else if awakePeers.length === 1}
-					<div class="sleepyhead-actions mt">
-						<p>You are the only one awake! You can peek at someone's dice roll.</p>
+					<div class="sleepyhead-actions mt-4">
 						{#if data.peekTargets?.[selfId]}
 							{@const targetId = data.peekTargets[selfId]}
-							<p class="peek-result mt">
-								You peeked at {gameState.players[targetId]?.name}. Their dice roll was: <strong>{data.dice[targetId]}</strong>
-							</p>
+							<div class="peek-result">
+								<p class="label">You peeked at {gameState.players[targetId]?.name}</p>
+								<p class="dice-val">They rolled a <strong>{data.dice[targetId]}</strong></p>
+							</div>
 						{:else}
-							<div class="vote-grid mt">
+							<p class="label">Peek at someone's roll</p>
+							<div class="choice-grid">
 								{#each players.filter(p => p !== selfId) as p}
-									<button class="btn-ghost vote-btn" onclick={() => peek(p)}>
-										Peek at {gameState.players[p]?.name}
+									<button class="choice-btn" onclick={() => peek(p)}>
+										{gameState.players[p]?.name}
 									</button>
 								{/each}
 							</div>
@@ -263,34 +267,40 @@
 			{/if}
 
 			{#if isHost}
-				<div class="host-controls mt">
-					<button class="btn-primary" onclick={nextHour}>
-						{data.currentHour === 6 ? 'Wake Everyone Up ☀️' : 'Next Hour ➡️'}
-					</button>
-				</div>
+				<button class="btn-primary-cozy host-next-btn" onclick={nextHour}>
+					{data.currentHour === 6 ? 'Morning Approaches ☀️' : 'Next Hour →'}
+				</button>
 			{/if}
 		</div>
 	{:else if data.phase === 'day'}
-		<div class="center-content">
-			<h3>☀️ Day Phase</h3>
-			<p>Everyone is awake! The cheese is {#if data.cheeseStolenBy}<strong>MISSING!</strong>{:else}safe!{/if}</p>
-			<p>Discuss who might have stolen it.</p>
+		<div class="center-content" in:fade>
+			<h3 class="day-text">☀️ The Sun is Up</h3>
+			<div class="cheese-status">
+				{#if data.cheeseStolenBy}
+					<span class="missing">THE CHEESE IS GONE! 🧀❓</span>
+				{:else}
+					<span class="safe">The cheese is safe. 🧀✅</span>
+				{/if}
+			</div>
+			<p class="tavern-text">Discuss and find the thief.</p>
 
 			{#if isHost}
-				<button class="btn-primary mt" onclick={beginVoting}>Begin Voting</button>
+				<button class="btn-primary-cozy mt-4" onclick={beginVoting}>Start Voting</button>
 			{/if}
 		</div>
 	{:else if data.phase === 'voting'}
-		<div class="center-content">
-			<h3>Vote for the Thief!</h3>
+		<div class="center-content" in:fade>
+			<h3 class="vote-label">Whom do you accuse?</h3>
 			
 			{#if data.votes[selfId]}
-				<p>Waiting for others to vote...</p>
-				<p class="progress">{Object.keys(data.votes).length} / {players.length} voted</p>
+				<div class="waiting-view">
+					<p>Accusation cast. Waiting for the mob...</p>
+					<p class="progress-text">{Object.keys(data.votes).length} / {players.length} voted</p>
+				</div>
 			{:else}
-				<div class="vote-grid">
+				<div class="choice-grid-wide">
 					{#each players as peerId}
-						<button class="btn-ghost vote-btn" onclick={() => { myVote = peerId; submitVote(); }}>
+						<button class="accuse-btn" onclick={() => { myVote = peerId; submitVote(); }}>
 							{gameState.players[peerId]?.name}
 						</button>
 					{/each}
@@ -298,8 +308,8 @@
 			{/if}
 
 			{#if isHost}
-				<button class="btn-primary mt" disabled={!allVoted} onclick={reveal}>
-					Reveal Thief
+				<button class="btn-primary-cozy mt-4" disabled={!allVoted} onclick={reveal}>
+					Reveal the Thief
 				</button>
 			{/if}
 		</div>
@@ -307,42 +317,32 @@
 		{@const thiefId = Object.keys(data.roles).find((p) => data.roles[p] === 'thief')}
 		{@const jokerId = Object.keys(data.roles).find((p) => data.roles[p] === 'joker')}
 		{@const accompliceId = data.accompliceTarget}
-		<div class="center-content">
-			<h3>The Reveal!</h3>
-			
-			<div class="reveal-card">
-				<p class="reveal-text">
-					The thief was: <strong class="thief-name">{thiefId ? gameState.players[thiefId]?.name : 'No one'}</strong>
-				</p>
+		<div class="center-content" in:fade>
+			<div class="reveal-result">
+				<div class="result-card thief-card">
+					<span class="label">The Thief was</span>
+					<h3 class="name">{thiefId ? gameState.players[thiefId]?.name : 'No one'}</h3>
+				</div>
+				
 				{#if accompliceId}
-					<p class="reveal-subtext">Accomplice: {gameState.players[accompliceId]?.name}</p>
-				{#else if !data.cheeseStolenBy}
-					<p class="reveal-subtext">The thief forgot to steal the cheese!</p>
-				{/if}
-				{#if jokerId}
-					<p class="reveal-subtext">Fall Mouse (Joker): {gameState.players[jokerId]?.name}</p>
+					<div class="accomplice-tag">Partner in crime: {gameState.players[accompliceId]?.name}</div>
 				{/if}
 			</div>
 
-			<div class="vote-summary mt">
-				<h4>Results</h4>
-				<ul class="summary-list">
-					{#each players as pid}
-						<li>
-							<strong>{gameState.players[pid]?.name}</strong>
-							<span class="role-tag {data.roles[pid]}">{data.roles[pid]}</span>
-							{#if data.votes[pid]}
-								<span class="vote-count">Received {Object.values(data.votes).filter(v => v === pid).length} votes</span>
-							{/if}
-						</li>
-					{/each}
-				</ul>
+			<div class="summary-scroll">
+				{#each players as pid}
+					<div class="summary-line">
+						<span class="p-name">{gameState.players[pid]?.name}</span>
+						<span class="p-role tag-{data.roles[pid]}">{data.roles[pid]}</span>
+						<span class="p-votes">{Object.values(data.votes).filter(v => v === pid).length} 🗳️</span>
+					</div>
+				{/each}
 			</div>
 
 			{#if isHost}
-				<div class="host-actions mt">
-					<button class="btn-primary" onclick={nextRound}>Next Round</button>
-					<button class="btn-ghost" onclick={backToLobby}>Return to Lobby</button>
+				<div class="host-actions-overlay">
+					<button class="btn-primary-cozy" onclick={nextRound}>Next Round</button>
+					<button class="btn-ghost-cozy" onclick={backToLobby}>Lobby</button>
 				</div>
 			{/if}
 		</div>
@@ -350,184 +350,229 @@
 </div>
 
 <style>
-	.cheese-thief {
-		grid-column: 1 / -1;
-		padding: 2rem;
+	.cheese-thief-board {
+		width: 100%;
+		height: 100%;
 		display: flex;
 		flex-direction: column;
-		gap: 2rem;
-		animation: fade-in 0.3s ease;
+		align-items: center;
+		justify-content: center;
+		position: relative;
 	}
-	@keyframes fade-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
 
-	.game-header {
-		text-align: center;
-		border-bottom: 1px solid rgba(255,255,255,0.1);
-		padding-bottom: 1rem;
+	.game-info-overlay {
+		position: absolute;
+		top: -2rem;
+		left: 50%;
+		transform: translateX(-50%);
 	}
-	.game-header h2 { font-size: 1.5rem; margin: 0; }
+
+	.phase-badge {
+		background: var(--accent);
+		color: #fff;
+		padding: 0.25rem 1rem;
+		border-radius: 20px;
+		font-weight: bold;
+		text-transform: uppercase;
+		font-size: 0.75rem;
+		letter-spacing: 0.1em;
+		box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+	}
 
 	.center-content {
 		display: flex;
 		flex-direction: column;
 		align-items: center;
 		text-align: center;
-		gap: 1rem;
+		gap: 1.5rem;
 	}
 
-	.role {
+	.tavern-text {
+		color: var(--text-table);
+		opacity: 0.8;
+		font-style: italic;
+	}
+
+	.role-reveal {
+		background: rgba(255,255,255,0.1);
+		padding: 1.5rem 3rem;
+		border-radius: 12px;
+		border: 1px solid rgba(255,255,255,0.2);
+	}
+
+	.role-text {
+		font-size: 2.5rem;
+		margin: 0;
+		color: var(--primary);
 		text-transform: uppercase;
-		color: var(--color-accent-light);
-		font-weight: bold;
-	}
-
-	.role-desc {
-		color: var(--color-text-muted);
-		max-width: 400px;
-	}
-
-	.dice-section {
-		margin: 2rem 0;
-		padding: 2rem;
-		background: rgba(0,0,0,0.2);
-		border-radius: var(--radius-lg);
-		border: 1px solid rgba(255,255,255,0.1);
-	}
-	.dice-result {
-		font-size: 2rem;
-		font-weight: bold;
-		color: #fff;
-	}
-
-	.progress { font-weight: bold; color: var(--color-text-muted); }
-
-	.night-mode {
-		background: rgba(10, 10, 30, 0.6);
-		padding: 2rem;
-		border-radius: var(--radius-lg);
-		border: 1px solid rgba(100, 100, 255, 0.2);
-	}
-	.hour {
-		font-size: 1.5rem;
-		color: #a0a0ff;
-	}
-	.sleep-status {
-		font-size: 1.5rem;
-		margin: 2rem 0;
-		padding: 1rem 2rem;
-		border-radius: var(--radius-md);
-		font-weight: bold;
-	}
-	.zzz {
-		background: rgba(0, 0, 0, 0.5);
-		color: #666;
-	}
-	.awake {
-		background: rgba(255, 200, 50, 0.2);
-		color: #ffcc33;
-		box-shadow: 0 0 20px rgba(255, 200, 50, 0.2);
-	}
-
-	.vote-grid {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		width: 100%;
-		max-width: 300px;
-	}
-	.vote-btn {
-		padding: 1rem;
-		font-size: 1.1rem;
-		background: rgba(255,255,255,0.05);
-		border: 1px solid rgba(255,255,255,0.1);
-	}
-
-	.reveal-text {
-		font-size: 1.2rem;
-		color: #fff;
-	}
-
-	.reveal-card {
-		background: rgba(124, 106, 247, 0.1);
-		padding: 1.5rem 2rem;
-		border-radius: var(--radius-lg);
-		border: 1px solid rgba(124, 106, 247, 0.3);
-		margin-bottom: 1rem;
-	}
-
-	.thief-name {
-		color: var(--color-accent-light);
-		font-size: 1.4rem;
-	}
-
-	.reveal-subtext {
-		color: var(--color-text-muted);
-		margin-top: 0.5rem;
-	}
-
-	.vote-summary {
-		width: 100%;
-		max-width: 400px;
-		background: rgba(0,0,0,0.2);
-		padding: 1.5rem;
-		border-radius: var(--radius-md);
-	}
-
-	.vote-summary h4 {
-		margin-top: 0;
-		color: var(--color-text-muted);
-		text-transform: uppercase;
-		font-size: 0.8rem;
 		letter-spacing: 0.05em;
 	}
 
-	.summary-list {
-		list-style: none;
-		padding: 0;
-		margin: 1rem 0 0 0;
-		text-align: left;
+	.dice-area {
+		margin: 1rem 0;
 	}
 
-	.summary-list li {
-		padding: 0.5rem 0;
-		border-bottom: 1px solid rgba(255,255,255,0.05);
+	.dice-visual {
+		width: 80px;
+		height: 80px;
+		background: #fff;
+		color: #333;
 		display: flex;
 		align-items: center;
+		justify-content: center;
+		font-size: 3rem;
+		font-weight: 900;
+		border-radius: 12px;
+		box-shadow: 0 10px 20px rgba(0,0,0,0.3), inset 0 -4px 0 rgba(0,0,0,0.1);
+	}
+
+	.roll-btn {
+		background: #fff;
+		color: #333;
+		border: none;
+		padding: 1rem 2rem;
+		border-radius: 12px;
+		font-size: 1.2rem;
+		font-weight: bold;
+		cursor: pointer;
+		box-shadow: 0 8px 15px rgba(0,0,0,0.2);
+		transition: transform 0.2s;
+	}
+
+	.roll-btn:hover { transform: translateY(-2px); }
+
+	.progress-bubble {
+		font-size: 0.8rem;
+		opacity: 0.6;
+		background: rgba(0,0,0,0.2);
+		padding: 0.25rem 0.75rem;
+		border-radius: 20px;
+	}
+
+	.night-content {
+		color: #a0a0ff;
+	}
+
+	.hour-text {
+		font-size: 1.5rem;
+		opacity: 0.7;
+	}
+
+	.sleep-status {
+		padding: 2rem;
+		border-radius: 20px;
+		background: rgba(0,0,0,0.3);
+		border: 1px solid rgba(100,100,255,0.2);
+	}
+
+	.sleep-status.awake {
+		background: rgba(255,255,0,0.1);
+		border-color: rgba(255,255,0,0.3);
+		color: #fff;
+		box-shadow: 0 0 30px rgba(255,255,0,0.1);
+	}
+
+	.choice-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
 		gap: 0.5rem;
 	}
 
-	.correct-tag {
-		color: var(--color-success);
-		font-weight: bold;
-		margin-left: auto;
+	.choice-btn {
+		background: rgba(255,255,255,0.1);
+		border: 1px solid rgba(255,255,255,0.2);
+		color: #fff;
+		padding: 0.5rem 1rem;
+		border-radius: 8px;
+		cursor: pointer;
 	}
 
-	.role-tag {
-		font-size: 0.7rem;
-		padding: 0.2rem 0.4rem;
+	.choice-btn:hover { background: var(--accent); }
+
+	.btn-primary-cozy {
+		background: var(--accent);
+		color: #fff;
+		border: none;
+		padding: 0.75rem 1.5rem;
+		border-radius: 50px;
+		font-weight: bold;
+		cursor: pointer;
+	}
+
+	.accuse-btn {
+		background: #fff;
+		color: #333;
+		border: 1px solid #ddd;
+		padding: 0.75rem 1.25rem;
 		border-radius: 4px;
-		text-transform: uppercase;
 		font-weight: bold;
-		margin-left: 0.5rem;
-	}
-	.role-tag.thief { background: var(--color-danger); color: #fff; }
-	.role-tag.joker { background: var(--color-gold); color: #000; }
-	.role-tag.accomplice { background: var(--color-accent); color: #fff; }
-	.role-tag.sleepyhead { background: rgba(255,255,255,0.1); color: var(--color-text-muted); }
-
-	.vote-count {
-		margin-left: auto;
-		font-size: 0.8rem;
-		color: var(--color-text-muted);
+		cursor: pointer;
+		box-shadow: 0 4px 6px rgba(0,0,0,0.1);
 	}
 
-	.host-actions {
+	.accuse-btn:hover { background: #f0f0f0; border-color: var(--accent); }
+
+	.choice-grid-wide {
 		display: flex;
-		flex-direction: column;
+		flex-wrap: wrap;
 		gap: 0.75rem;
-		width: 100%;
-		max-width: 300px;
+		justify-content: center;
+		max-width: 500px;
 	}
 
-	.mt { margin-top: 2rem; }
+	.reveal-result {
+		margin-bottom: 2rem;
+	}
+
+	.result-card {
+		background: #fff;
+		padding: 2rem 4rem;
+		border-radius: 4px;
+		box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+		transform: rotate(2deg);
+	}
+
+	.result-card .name { font-size: 2.5rem; color: #d32f2f; margin: 0; }
+	.result-card .label { color: #888; text-transform: uppercase; font-size: 0.8rem; }
+
+	.summary-scroll {
+		background: rgba(0,0,0,0.2);
+		padding: 1rem;
+		border-radius: 8px;
+		width: 100%;
+		max-width: 400px;
+	}
+
+	.summary-line {
+		display: flex;
+		align-items: center;
+		gap: 1rem;
+		padding: 0.5rem 0;
+		border-bottom: 1px solid rgba(255,255,255,0.05);
+	}
+
+	.p-name { flex: 1; text-align: left; }
+	.p-role { font-size: 0.7rem; text-transform: uppercase; font-weight: bold; padding: 0.2rem 0.4rem; border-radius: 4px; }
+	.tag-thief { background: #d32f2f; color: #fff; }
+	.tag-joker { background: #fbc02d; color: #000; }
+	.tag-accomplice { background: #1976d2; color: #fff; }
+	.tag-sleepyhead { opacity: 0.5; }
+
+	.host-actions-overlay {
+		margin-top: 2rem;
+		display: flex;
+		gap: 1rem;
+	}
+
+	.btn-ghost-cozy {
+		background: transparent;
+		border: 2px solid rgba(255,255,255,0.2);
+		color: #fff;
+		padding: 0.75rem 1.5rem;
+		border-radius: 50px;
+		cursor: pointer;
+	}
+
+	.mt-4 { margin-top: 1rem; }
+	.small { font-size: 0.8rem; opacity: 0.7; }
 </style>

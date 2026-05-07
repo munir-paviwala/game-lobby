@@ -23,7 +23,8 @@ function createInitialState(): GameState {
 		game: {
 			id: null,
 			data: null
-		}
+		},
+		version: 0
 	};
 }
 
@@ -50,6 +51,7 @@ export function resetState() {
  * Game-specific actions (GAME_ACTION) are delegated to the active game's reducer.
  */
 export function reduce(state: GameState, action: Action): GameState {
+	const nextVersion = state.version + 1;
 	switch (action.type) {
 		case 'PLAYER_JOIN': {
 			const player = action.payload as unknown as Player;
@@ -62,7 +64,8 @@ export function reduce(state: GameState, action: Action): GameState {
 				scores: {
 					...state.scores,
 					[player.id]: state.scores[player.id] ?? 0
-				}
+				},
+				version: nextVersion
 			};
 		}
 
@@ -70,30 +73,32 @@ export function reduce(state: GameState, action: Action): GameState {
 			const { playerId } = action.payload as { playerId: string };
 			const players = { ...state.players };
 			delete players[playerId];
-			return { ...state, players };
+			return { ...state, players, version: nextVersion };
 		}
 
 		case 'HOST_SET_GAME': {
 			const { gameId } = action.payload as { gameId: string };
 			return {
 				...state,
-				game: { id: gameId, data: null }
+				game: { id: gameId, data: null },
+				version: nextVersion
 			};
 		}
 
 		case 'START_GAME': {
-			return { ...state, phase: 'playing' };
+			return { ...state, phase: 'playing', version: nextVersion };
 		}
 
 		case 'END_GAME': {
-			return { ...state, phase: 'ended' };
+			return { ...state, phase: 'ended', version: nextVersion };
 		}
 
 		case 'BACK_TO_LOBBY': {
 			return {
 				...state,
 				phase: 'lobby',
-				game: { id: state.game.id, data: null }
+				game: { id: state.game.id, data: null },
+				version: nextVersion
 			};
 		}
 
@@ -103,7 +108,7 @@ export function reduce(state: GameState, action: Action): GameState {
 			for (const [peerId, pts] of Object.entries(points)) {
 				newScores[peerId] = (newScores[peerId] ?? 0) + pts;
 			}
-			return { ...state, scores: newScores };
+			return { ...state, scores: newScores, version: nextVersion };
 		}
 
 		case 'GAME_ACTION': {
@@ -116,11 +121,12 @@ export function reduce(state: GameState, action: Action): GameState {
 						game: {
 							...state.game,
 							data: gameModule.reducer(state.game.data, action)
-						}
+						},
+						version: nextVersion
 					};
 				}
 			}
-			return state;
+			return { ...state, version: nextVersion };
 		}
 
 		default:

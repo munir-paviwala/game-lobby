@@ -21,6 +21,14 @@ export interface RoomMeta {
 	gameId: string | null;        // null = no game selected yet
 }
 
+export interface GameTheme {
+	primary: string;
+	secondary: string;
+	accent: string;
+	background: string;
+	text: string;
+}
+
 // ─── Game State ──────────────────────────────────────────────────────────────
 
 export interface GameState {
@@ -32,6 +40,7 @@ export interface GameState {
 		id: string | null;
 		data: unknown;
 	};
+	version: number; // For reliability: incremented on every action
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────

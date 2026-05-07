@@ -31,6 +31,8 @@
 	import PlayerCard from '$lib/components/PlayerCard.svelte';
 	import RoomCode from '$lib/components/RoomCode.svelte';
 	import VideoGrid from '$lib/components/VideoGrid.svelte';
+	import GameTable from '$lib/components/GameTable.svelte';
+	import ChaosTool from '$lib/components/ChaosTool.svelte';
 	import type { PageData } from './$types';
 	import type { PeerMessage, Action } from '$lib/engine/types';
 
@@ -46,9 +48,16 @@
 	let hasJoined = $state(false);
 	let loadingJoin = $state(false);
 	let videoGrid: any = $state(null);
+	let remoteStreams = $state(new Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>());
+	let localStream = $state<MediaStream | null>(null);
+
+	// Handshake state
+	let handshakeInterval: any = null;
+	let receivedWelcome = $state(false);
 
 	// ─── Lifecycle ────────────────────────────────────────────────────────────
 	let cleanupFns: Array<() => void> = [];
+
 
 	onMount(async () => {
 		if (!$playerName || !$roomMeta) {
@@ -95,6 +104,25 @@
 					}
 				});
 				hostPeerId.set(selfPeerId);
+				receivedWelcome = true; // Host is always welcomed
+			} else {
+				// START HANDSHAKE HEARTBEAT
+				// We keep announcing ourselves until the host welcomes us
+				handshakeInterval = setInterval(() => {
+					if (!receivedWelcome) {
+						console.log('[P2P] Pulsing ANNOUNCE...');
+						// Broadcast announce to all peers because we don't know who the host is yet
+						import('$lib/engine/peer').then(p => {
+							p.broadcast({
+								kind: 'ANNOUNCE',
+								name: $playerName,
+								passwordHash: $roomMeta?.passwordHash ?? null
+							});
+						});
+					} else {
+						clearInterval(handshakeInterval);
+					}
+				}, 2000);
 			}
 
 			hasJoined = true;
@@ -107,6 +135,7 @@
 	}
 
 	onDestroy(() => {
+		if (handshakeInterval) clearInterval(handshakeInterval);
 		cleanupFns.forEach((fn) => fn());
 		leaveRoom();
 	});
@@ -118,39 +147,37 @@
 			case 'ANNOUNCE': {
 				// Only the host processes ANNOUNCE messages
 				if (!$isHost) return;
+				console.log(`[P2P] Received ANNOUNCE from ${peerId} (${msg.name})`);
 
 				// Validate password if room is password-protected
 				const meta = $roomMeta;
-				if (meta?.passwordHash && msg.passwordHash !== meta.passwordHash) {
-					// Wrong password — send rejection (just don't send WELCOME)
-					return;
+				if (meta?.passwordHash && msg.passwordHash !== meta.passwordHash) return;
+
+				// If player already in state, just re-send welcome (retry case)
+				const existing = $gameState.players[peerId];
+				let newState = $gameState;
+				if (!existing) {
+					newState = applyAction({
+						type: 'PLAYER_JOIN',
+						payload: { id: peerId, name: msg.name, isHost: false, joinedAt: Date.now() }
+					});
+					broadcastStateSync(newState);
 				}
 
-				// Add player to state
-				const newState = applyAction({
-					type: 'PLAYER_JOIN',
-					payload: {
-						id: peerId,
-						name: msg.name,
-						isHost: false,
-						joinedAt: Date.now()
-					}
-				});
-
-				// Welcome the new joiner with current state
 				sendWelcome(peerId, {
 					room: { ...(meta ?? { roomId, passwordHash: null, hostId: selfPeerId, gameId: null }) },
 					state: newState
 				});
-
-				// Broadcast updated state to all peers
-				broadcastStateSync(newState);
 				break;
 			}
 
 			case 'WELCOME': {
 				// Only clients receive WELCOME
-				if ($isHost) return;
+				if ($isHost || receivedWelcome) return;
+				console.log(`[P2P] Received WELCOME from ${peerId} (Host)`);
+
+				receivedWelcome = true;
+				if (handshakeInterval) clearInterval(handshakeInterval);
 
 				// Store host peer ID
 				hostPeerId.set(peerId);
@@ -200,37 +227,9 @@
 		broadcastStateSync(newState);
 	}
 
-	// ─── Client: announce self to host when a peer joins ─────────────────────
-	// (This handles the case where the client connects and the host is already there)
-	$effect(() => {
-		if (!$isHost && connectionStatus === 'connected') {
-			const hid = $hostPeerId;
-			if (hid) {
-				sendAnnounce(hid, {
-					name: $playerName,
-					passwordHash: $roomMeta?.passwordHash ?? null
-				});
-			}
-		}
-	});
-
-	// Handle peer join as a client: if we get a new peer join and don't know
-	// the host yet, announce to them
-	onMount(() => {
-		cleanupFns.push(
-			onPeerJoin((peerId) => {
-				if (!$isHost && !$hostPeerId) {
-					sendAnnounce(peerId, {
-						name: $playerName,
-						passwordHash: $roomMeta?.passwordHash ?? null
-					});
-				}
-			})
-		);
-	});
-
 	// ─── Leave room ────────────────────────────────────────────────────────────
 	function handleLeave() {
+		if (handshakeInterval) clearInterval(handshakeInterval);
 		leaveRoom();
 		resetState();
 		clearSession();
@@ -294,7 +293,14 @@
 
 		{:else}
 			<div class="video-wrapper">
-				<VideoGrid bind:this={videoGrid} state={$gameState} selfId={selfPeerId} />
+				<VideoGrid 
+					bind:this={videoGrid} 
+					state={$gameState} 
+					selfId={selfPeerId} 
+					mode={$isPlaying ? 'headless' : 'grid'}
+					bind:remoteStreams
+					bind:localStream
+				/>
 			</div>
 
 			{#if !hasJoined}
@@ -407,18 +413,27 @@
 
 		<!-- Active Game Component -->
 		{#if $isPlaying && $gameState.game.id}
-			{@const ActiveGame = getGame($gameState.game.id)?.component}
-			{#if ActiveGame}
-				<ActiveGame
-					state={$gameState}
-					isHost={$isHost}
-					selfId={selfPeerId}
-					onAction={handleGameAction}
-				/>
-			{/if}
+			<GameTable 
+				state={$gameState} 
+				{selfId} 
+				{remoteStreams} 
+				{localStream}
+			>
+				{@const ActiveGame = getGame($gameState.game.id)?.component}
+				{#if ActiveGame}
+					<ActiveGame
+						state={$gameState}
+						isHost={$isHost}
+						selfId={selfPeerId}
+						onAction={handleGameAction}
+					/>
+				{/if}
+			</GameTable>
 		{/if}
 	</div>
 </main>
+
+<ChaosTool />
 
 <style>
 	.room-page {

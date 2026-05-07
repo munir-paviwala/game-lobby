@@ -2,56 +2,53 @@
 
 ## 📜 Conversation & Progress Summary
 
-We have successfully moved from a conceptual architecture to a fully functional P2P game platform. The project is currently at the end of **Phase 5**.
+We have successfully moved from a conceptual architecture to a fully functional P2P game platform with a high-polish "Cozy Tabletop" UI. The project has completed **Phase 6** (UX Overhaul & Reliability).
 
 ### Completed Phases:
-- **Phase 1 (Foundation):** SvelteKit 5 + Trystero (Nostr) networking, global state management (Reducer/Dispatch), and static site configuration for GitHub Pages.
-- **Phase 2 (Game Registry):** Pluggable architecture allowing multiple games. Wired `GAME_ACTION` to dynamic game reducers.
-- **Phase 3 (Video Engine):** Integrated camera/mic streams. Built a `VideoGrid` that supports game-driven effects like "Night Phase" blurring and muting.
-- **Phase 4 (Herd Mentality):** Implemented a full social quiz game with prompt picking, answer submission, and majority-based scoring.
-- **Phase 5 (Cheese Thief):** Implemented a complex social deduction game with secret roles (Thief, Sleepyhead, Fall Mouse, Accomplice), dice rolling, and a multi-phase night.
-- **Audio Engine:** Added a lightweight, synthesized sound system using Web Audio API for immersive feedback (dice, reveals, phase transitions).
-- **Responsive Video:** Optimized `VideoGrid` with dynamic tile sizing and refined mobile layouts for 8+ players.
-- **Enhanced Summaries:** Added "Game Over" voting breakdowns and "Return to Lobby" flows for all games.
-- **Privacy First:** Documented the P2P privacy model and camera/mic security in `PRIVACY.md`.
-- **Shareable Rooms:** Integrated "Copy Link" functionality into the `RoomCode` component.
-- **GH Pages Fix:** Resolved 404 errors by configuring `paths.base` and migrating all links to use the `$app/paths` prefix.
+- **Phase 1 (Foundation):** SvelteKit 5 + Trystero (Nostr) networking, global state management (Reducer/Dispatch).
+- **Phase 2 (Game Registry):** Pluggable architecture with theme support.
+- **Phase 3 (Video Engine):** Integrated camera/mic streams with "headless" mode for custom layouts.
+- **Phase 4 (Herd Mentality):** "Paper & Pen" aesthetic social quiz game.
+- **Phase 5 (Cheese Thief):** "Tavern Table" aesthetic social deduction game.
+- **Phase 6 (UX & Reliability):**
+    - [x] **Tabletop Canvas:** Implemented `GameTable` with elliptical player positioning and physical sense of space.
+    - [x] **Cozy Themes:** Unique color palettes and "non-corporate" styles for each game.
+    - [x] **State Versioning:** Added `version` tracking to prevent out-of-order state updates.
+    - [x] **Chaos Mode:** Built a Stress Testing tool for simulating bots and rapid actions.
 
 ---
 
 ## 🏗️ Architectural Decisions
 
-1.  **Authoritative Host:** While the network is P2P, the Host acts as the single source of truth. All actions (even local ones) are processed through the Host's reducer, and the resulting state is broadcasted to all peers.
-2.  **Reactive Media Engine:** The `VideoGrid` is decoupled from game logic but reactive to it. By populating a `sleepingPeers` array in the game state, any game can instantly trigger a "blind/mute" phase for specific players.
-3.  **Local-First / Serverless:** No backend is used. Connectivity is established via Nostr relays (Trystero), and data persistence is handled via `localStorage`.
-4.  **Static SSL for Mobile:** Configured `vite-plugin-basic-ssl` and network exposure to allow `getUserMedia` testing on mobile devices over local IP, bypassing the browser's "Secure Context" requirement.
-5.  **Synthesized Audio:** Use Web Audio API oscillators and noise buffers instead of external assets to keep the bundle small and zero-dependency.
-6.  **Base Path Routing:** Explicitly configured `/game-lobby` as the base path for production to ensure compatibility with GitHub Pages' subfolder hosting.
+1.  **Elliptical Layout:** Players are positioned around a central "Table Surface" using `Math.sin/cos`, creating a physical presence.
+2.  **Headless Video Engine:** `VideoGrid` can run in a background mode to manage streams while `GameTable` handles the visual rendering via `VideoTile`.
+3.  **Authoritative State with Versioning:** The Host maintains an incrementing version number for the state, ensuring clients stay in sync and can detect missed updates.
+4.  **Bot Simulation:** The engine supports "Virtual Peers" (bots) for stress testing without requiring multiple physical devices.
 
 ---
 
-## 🐞 Recent Fixes & Improvements
+## ✨ Features & Polish
 
-- **Host Identity:** Fixed a bug where actions taken by the Host were missing a `senderId`, causing them to fail in game reducers.
-- **UI Decoupling:** Corrected a layout issue where the lobby "Waiting for Host" card and player list remained visible while a game was in progress.
-- **Scoring Freedom:** Added manual score adjustment buttons (+/-) for the host to correct game errors or reward "house rules."
-- **Lobby Exit:** Added a `BACK_TO_LOBBY` global action to allow cleanly resetting a session without leaving the room.
-- **Mobile Grid:** Dynamic video tile resizing for 8+ players.
-- **Cheese Thief Expansion:** Added **Fall Mouse (Joker)** and **Accomplice** roles. Lowered minimum players to 3 for both games.
-- **Mobile Video Fallback:** Added a generic camera fallback and troubleshooting UI for mobile browsers.
+- **Cozy Tabletop UI:** Radial gradients, elliptical tables, and "paper-like" UI elements.
+- **Themed Games:**
+    - **Cheese Thief:** Yellow pastels, tavern vibes, dice visuals.
+    - **Herd Mentality:** Off-white/Pink "cow" theme, paper-slip answers.
+- **Chaos Tool:** Developer tool for spawning bots and triggering rapid-fire actions to test mesh stability.
+- **Manual Scoring:** Integrated into the player seat UI on the table.
 
 ---
 
 ## 🚀 Next Implementation Steps
 
-1.  **Deployment (Phase 6):**
-    - [x] Finalize GitHub Actions push to verify the `adapter-static` build on live infra.
-    - [ ] Test the "HTTPS" behavior on GitHub Pages to confirm mobile video connectivity.
+1.  **UX Polish (Final Touches):**
+    - [ ] **"How to Play" Overlays:** Add cozy, handwritten-style rule cards.
+    - [ ] **Expansion Sound Effects:** Add "Card Deal" and "Table Thump" sounds.
+    - [ ] **Win Animations:** Confetti or themed celebrations (e.g., floating cheese).
 
-2.  **UX Polish:**
-    - [ ] Add more sound effects (e.g. "Game Start" fanfare).
-    - [ ] Add a "How to Play" modal or overlay for each game.
+2.  **Refinement & Reliability:**
+    - [ ] **State Reconciliation:** Implement logic for clients to request a full sync if `version` gaps are detected.
+    - [ ] **Host Handover:** Ensure the "Table" persists if the host leaves and a new one is assigned.
+    - [ ] **PWA / Offline Support:** Finalize Service Worker for flaky connections.
 
-3.  **Refinement:**
-    - [ ] Add "Host Handover" if the original host leaves.
-    - [ ] Implement Offline-first (Service Worker) for better PWA support.
+3.  **Future Games:**
+    - [ ] **Phase 7 Idea:** "Two Truths and a Lie" using the new Tabletop slots.
