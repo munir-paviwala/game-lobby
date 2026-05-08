@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores';
+	import MouseTrail from '$lib/components/MouseTrail.svelte';
 
 	let { children } = $props();
 </script>
@@ -12,6 +13,8 @@
 		rel="stylesheet"
 	/>
 </svelte:head>
+
+<MouseTrail />
 
 <div class="app-shell">
 	{@render children()}

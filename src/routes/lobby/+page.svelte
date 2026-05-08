@@ -3,8 +3,10 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/stores';
 	import { browser } from '$app/environment';
+	import { onMount } from 'svelte';
 	import { hashPassword } from '$lib/engine/crypto';
 	import { playerName, isHost, hostPeerId, roomMeta, saveSession } from '$lib/engine/session';
+	import { generateFunnyName } from '$lib/engine/names';
 
 	// ─── Tab state (create / join) ───────────────────────────────────────────
 	let tab = $state<'create' | 'join'>('create');
@@ -17,6 +19,13 @@
 
 	// ─── Form state ──────────────────────────────────────────────────────────
 	let nameInput = $state('');
+	
+	onMount(() => {
+		if (!nameInput) {
+			nameInput = generateFunnyName();
+		}
+	});
+
 	let roomCodeInput = $state('');
 	let passwordInput = $state('');
 	let loading = $state(false);
@@ -36,7 +45,7 @@
 	function validateName(n: string): string | null {
 		if (!n.trim()) return 'Please enter your name.';
 		if (n.trim().length < 2) return 'Name must be at least 2 characters.';
-		if (n.trim().length > 24) return 'Name must be 24 characters or less.';
+		if (n.trim().length > 32) return 'Name must be 32 characters or less.';
 		return null;
 	}
 
@@ -157,15 +166,25 @@
 		>
 			<div class="field">
 				<label for="player-name">Your Name</label>
-				<input
-					id="player-name"
-					type="text"
-					placeholder="e.g. Munir"
-					bind:value={nameInput}
-					maxlength={24}
-					autocomplete="off"
-					required
-				/>
+				<div class="input-with-action">
+					<input
+						id="player-name"
+						type="text"
+						placeholder="e.g. butter-chocolate-192"
+						bind:value={nameInput}
+						maxlength={32}
+						autocomplete="off"
+						required
+					/>
+					<button
+						type="button"
+						class="btn-ghost action-btn"
+						onclick={() => (nameInput = generateFunnyName())}
+						title="Generate funny name"
+					>
+						🎲
+					</button>
+				</div>
 			</div>
 
 			{#if tab === 'create'}
@@ -342,13 +361,16 @@
 		gap: 1.1rem;
 	}
 
-	.code-row {
+	.input-with-action, .code-row {
 		display: flex;
 		gap: 0.5rem;
 	}
 
-	.code-input {
+	.input-with-action input, .code-input {
 		flex: 1;
+	}
+
+	.code-input {
 		padding: 0.75rem 1rem;
 		background: rgba(124, 106, 247, 0.1);
 		border: 1px solid rgba(124, 106, 247, 0.3);
@@ -362,7 +384,7 @@
 		user-select: all;
 	}
 
-	.regen-btn {
+	.action-btn, .regen-btn {
 		padding: 0.75rem;
 		font-size: 1.1rem;
 		min-width: 44px;

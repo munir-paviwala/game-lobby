@@ -33,6 +33,7 @@
 	import RoomCode from '$lib/components/RoomCode.svelte';
 	import VideoGrid from '$lib/components/VideoGrid.svelte';
 	import GameTable from '$lib/components/GameTable.svelte';
+	import HelpModal from '$lib/components/HelpModal.svelte';
 	
 	import type { PageData } from './$types';
 	import type { PeerMessage, Action } from '$lib/engine/types';
@@ -48,6 +49,7 @@
 	let selfPeerId = $state('');
 	let hasJoined = $state(false);
 	let loadingJoin = $state(false);
+	let isHelpOpen = $state(false);
 	let videoGrid: any = $state(null);
 	let remoteStreams = $state(new Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>());
 	let localStream = $state<MediaStream | null>(null);
@@ -268,7 +270,10 @@
 	<header class="room-header" class:is-playing={$isPlaying}>
 		<div class="brand">🎲 Game Lobby</div>
 		<RoomCode {roomId} />
-		<button class="btn-ghost leave-btn" id="btn-leave-room" onclick={handleLeave}>Leave</button>
+		<div class="header-actions">
+			<button class="btn-ghost help-btn" onclick={() => isHelpOpen = true}>Help</button>
+			<button class="btn-ghost leave-btn" id="btn-leave-room" onclick={handleLeave}>Leave</button>
+		</div>
 	</header>
 
 	<!-- Main content -->
@@ -429,6 +434,8 @@
 			</GameTable>
 		{/if}
 	</div>
+
+	<HelpModal isOpen={isHelpOpen} onClose={() => (isHelpOpen = false)} />
 </main>
 
 
@@ -484,8 +491,20 @@
 		flex-shrink: 0;
 	}
 
-	.leave-btn {
+	.header-actions {
 		margin-left: auto;
+		display: flex;
+		gap: 0.5rem;
+	}
+
+	.help-btn {
+		padding: 0.45rem 0.9rem;
+		font-size: 0.85rem;
+		color: var(--color-accent-light);
+		border-color: rgba(124, 106, 247, 0.3);
+	}
+
+	.leave-btn {
 		padding: 0.45rem 0.9rem;
 		font-size: 0.85rem;
 		color: var(--color-danger);
