@@ -2,7 +2,7 @@ import type { Action } from '$lib/engine/types';
 
 export interface CTData {
 	phase: 'setup' | 'rolling' | 'night' | 'day' | 'voting' | 'reveal';
-	roles: Record<string, 'thief' | 'sleepyhead' | 'joker' | 'accomplice'>;
+	roles: Record<string, 'thief' | 'sleepyhead' | 'fall mouse' | 'accomplice'>;
 	dice: Record<string, number>;
 	cheeseStolenBy: string | null;
 	currentHour: number;

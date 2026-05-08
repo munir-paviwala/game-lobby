@@ -32,11 +32,11 @@
 					<h3>🧀 Cheese Thief</h3>
 					<p>A social deduction game of dice and deception.</p>
 					<ul>
-						<li><strong>Roles:</strong> One player is the Thief, others are Sleepyheads (and maybe a Joker).</li>
+						<li><strong>Roles:</strong> One player is the Thief, others are Sleepyheads, and sometimes a <strong>Fall Mouse</strong>.</li>
 						<li><strong>The Night:</strong> Everyone "sleeps" (video blurs). Players wake up at specific hours based on their dice roll.</li>
-						<li><strong>The Heist:</strong> The Thief wakes up at their hour and decides whether to steal the cheese.</li>
-						<li><strong>The Discussion:</strong> Everyone wakes up. If the cheese is gone, find the thief!</li>
-						<li><strong>Voting:</strong> Vote for who you think stole it. If the Thief is caught, Sleepyheads win. If not, the Thief wins!</li>
+						<li><strong>The Heist:</strong> The Thief wakes up and decides whether to steal the cheese.</li>
+						<li><strong>The Fall Mouse:</strong> Their goal is to get voted out! They win if the group mistakenly thinks they are the thief.</li>
+						<li><strong>Voting:</strong> Find the thief! If the Thief is caught, Sleepyheads win. If the group votes for the Fall Mouse, the Fall Mouse wins!</li>
 					</ul>
 				</section>
 			</div>

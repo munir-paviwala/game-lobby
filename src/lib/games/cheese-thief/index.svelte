@@ -29,16 +29,16 @@
 
 	// Phase: setup
 	function assignRoles() {
-		const roles: Record<string, 'thief' | 'sleepyhead' | 'joker' | 'accomplice'> = {};
+		const roles: Record<string, 'thief' | 'sleepyhead' | 'fall mouse' | 'accomplice'> = {};
 		const shuffled = [...players].sort(() => Math.random() - 0.5);
 		
 		// 1 thief
 		roles[shuffled[0]] = 'thief';
 		
-		// 1 joker if 5+ players
+		// 1 fall mouse if 5+ players
 		let nextIdx = 1;
 		if (players.length >= 5) {
-			roles[shuffled[1]] = 'joker';
+			roles[shuffled[1]] = 'fall mouse';
 			nextIdx = 2;
 		}
 
@@ -48,6 +48,13 @@
 		}
 		onAction({ type: 'GAME_ACTION', payload: { type: 'CT_START_GAME', roles } });
 	}
+
+	const roleGoals = {
+		'thief': 'Steal the cheese at your hour. In the morning, try to frame someone else. Win if you aren\'t voted out.',
+		'sleepyhead': 'A simple mouse. Find the cheese thief! Win if the thief is caught.',
+		'fall mouse': 'You win if you get voted out. Try to look suspicious enough to be identified as the thief!',
+		'accomplice': 'You were tapped on the shoulder... Help the thief escape! You win if the thief wins.'
+	};
 
 	// Phase: rolling
 	let myDiceRoll = $state<number | null>(null);
@@ -120,15 +127,15 @@
 
 		// Roles
 		const thiefId = Object.keys(data.roles).find((p) => data.roles[p] === 'thief');
-		const jokerId = Object.keys(data.roles).find((p) => data.roles[p] === 'joker');
+		const fallMouseId = Object.keys(data.roles).find((p) => data.roles[p] === 'fall mouse');
 		const accompliceId = data.accompliceTarget;
 
 		// Points logic
 		const points: Record<string, number> = {};
 		
-		// Joker condition: If voted out, Joker wins big
-		if (jokerId && votedOut === jokerId) {
-			points[jokerId] = 3;
+		// Fall Mouse condition: If voted out, Fall Mouse wins big
+		if (fallMouseId && votedOut === fallMouseId) {
+			points[fallMouseId] = 3;
 		}
 
 		// Thief / Sleepyhead condition
@@ -136,7 +143,7 @@
 			if (votedOut === thiefId) {
 				// Sleepyheads win
 				players.forEach((p) => {
-					if (data.roles[p] === 'sleepyhead' || data.roles[p] === 'joker') {
+					if (data.roles[p] === 'sleepyhead' || data.roles[p] === 'fall mouse') {
 						points[p] = (points[p] || 0) + 1;
 					}
 				});
@@ -181,6 +188,7 @@
 			<div class="role-reveal">
 				<span class="label">Your Secret Role</span>
 				<h3 class="role-text">{data.roles[selfId]}</h3>
+				<p class="role-goal">{roleGoals[data.roles[selfId]]}</p>
 			</div>
 
 			<div class="dice-area">
@@ -316,7 +324,7 @@
 		</div>
 	{:else if data.phase === 'reveal'}
 		{@const thiefId = Object.keys(data.roles).find((p) => data.roles[p] === 'thief')}
-		{@const jokerId = Object.keys(data.roles).find((p) => data.roles[p] === 'joker')}
+		{@const fallMouseId = Object.keys(data.roles).find((p) => data.roles[p] === 'fall mouse')}
 		{@const accompliceId = data.accompliceTarget}
 		<div class="center-content" in:fade>
 			<div class="reveal-result">
@@ -555,7 +563,7 @@
 	.p-name { flex: 1; text-align: left; }
 	.p-role { font-size: 0.7rem; text-transform: uppercase; font-weight: bold; padding: 0.2rem 0.4rem; border-radius: 4px; }
 	.tag-thief { background: #d32f2f; color: #fff; }
-	.tag-joker { background: #fbc02d; color: #000; }
+	.tag-fall-mouse { background: #fbc02d; color: #000; }
 	.tag-accomplice { background: #1976d2; color: #fff; }
 	.tag-sleepyhead { opacity: 0.5; }
 
