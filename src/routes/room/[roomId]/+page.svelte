@@ -25,8 +25,10 @@
 		isHost,
 		hostPeerId,
 		roomMeta,
+		roomMeta,
 		saveSession,
-		clearSession
+		clearSession,
+		restoreSession
 	} from '$lib/engine/session';
 
 	import PlayerCard from '$lib/components/PlayerCard.svelte';
@@ -66,6 +68,8 @@
 
 
 	onMount(async () => {
+		restoreSession();
+
 		if (!$playerName || !$roomMeta) {
 			goto(`${base}/lobby/`);
 			return;
@@ -541,6 +545,17 @@
 	@media (max-width: 640px) {
 		.room-body {
 			grid-template-columns: 1fr;
+			padding: 1rem;
+		}
+		
+		.room-header {
+			justify-content: center;
+		}
+		
+		.header-actions {
+			width: 100%;
+			justify-content: center;
+			margin-top: 0.5rem;
 		}
 	}
 

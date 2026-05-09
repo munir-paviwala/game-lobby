@@ -16,18 +16,18 @@
 	const data = $derived((gameState.game.data as HMData) || { phase: 'picking', round: 1, prompt: null, answers: {}, majorityAnswer: null });
 	const players = $derived(Object.keys(gameState.players));
 
-	// Host: Picking phase
-	let hostPrompts = $state<string[]>([]);
+	// All players: Picking phase
+	let localPrompts = $state<string[]>([]);
 	$effect(() => {
-		if (isHost && data.phase === 'picking' && hostPrompts.length === 0) {
-			hostPrompts = getRandomPrompts(3);
+		if (data.phase === 'picking' && localPrompts.length === 0) {
+			localPrompts = getRandomPrompts(3);
 		}
 	});
 
 	function pickPrompt(prompt: string) {
 		playPop();
 		onAction({ type: 'GAME_ACTION', payload: { type: 'HM_START_ROUND', prompt } });
-		hostPrompts = [];
+		localPrompts = [];
 	}
 
 	// Client: Answering
@@ -94,20 +94,14 @@
 	</header>
 
 	{#if data.phase === 'picking'}
-		{#if isHost}
-			<div class="picking-view" in:fade>
-				<h3 class="table-label">Host: Pick a prompt</h3>
-				<div class="prompts">
-					{#each hostPrompts as p}
-						<button class="paper-btn prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
-					{/each}
-				</div>
+		<div class="picking-view" in:fade>
+			<h3 class="table-label">Pick a prompt to start the round</h3>
+			<div class="prompts">
+				{#each localPrompts as p}
+					<button class="paper-btn prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
+				{/each}
 			</div>
-		{:else}
-			<div class="waiting-view" in:fade>
-				<p>Waiting for the host to pick a prompt...</p>
-			</div>
-		{/if}
+		</div>
 
 	{:else if data.phase === 'answering'}
 		<div class="answering-view" in:fade>
@@ -135,17 +129,15 @@
 				</div>
 			{/if}
 
-			{#if isHost}
-				<div class="host-panel">
-					<button 
-						class="btn-primary-cozy" 
-						disabled={Object.keys(data.answers).length === 0}
-						onclick={revealAnswers}
-					>
-						Reveal Answers
-					</button>
-				</div>
-			{/if}
+			<div class="host-panel">
+				<button 
+					class="btn-primary-cozy" 
+					disabled={Object.keys(data.answers).length === 0}
+					onclick={revealAnswers}
+				>
+					Reveal Answers
+				</button>
+			</div>
 		</div>
 
 	{:else if data.phase === 'revealing'}
@@ -192,8 +184,9 @@
 			</div>
 
 			<div class="host-actions-overlay">
+			<div class="host-actions-overlay">
+				<button class="btn-primary-cozy" onclick={nextRound}>Next Round →</button>
 				{#if isHost}
-					<button class="btn-primary-cozy" onclick={nextRound}>Next Round →</button>
 					<button class="btn-ghost-cozy" onclick={backToLobby}>Lobby</button>
 				{/if}
 			</div>
@@ -292,11 +285,15 @@
 
 	.input-area {
 		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
 		gap: 0.5rem;
 		background: rgba(255,255,255,0.1);
 		padding: 0.5rem;
 		border-radius: 50px;
 		border: 2px solid rgba(255,255,255,0.2);
+		width: 100%;
+		max-width: 400px;
 	}
 
 	.input-area input {
@@ -306,7 +303,8 @@
 		color: #fff;
 		font-size: 1.1rem;
 		outline: none;
-		width: 250px;
+		flex: 1;
+		min-width: 150px;
 	}
 
 	.btn-primary-cozy {
@@ -512,5 +510,27 @@
 		padding: 0.75rem 1.5rem;
 		border-radius: 50px;
 		cursor: pointer;
+	}
+
+	@media (max-width: 600px) {
+		.prompt-text {
+			font-size: 1.5rem;
+		}
+		.main-prompt {
+			padding: 1rem;
+		}
+		.answers-grid {
+			grid-template-columns: 1fr;
+		}
+		.input-area {
+			border-radius: 20px;
+		}
+		.btn-primary-cozy, .btn-ghost-cozy {
+			width: 100%;
+		}
+		.host-actions-overlay {
+			flex-direction: column;
+			width: 100%;
+		}
 	}
 </style>

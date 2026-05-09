@@ -103,7 +103,7 @@
 		position: relative;
 		width: 100%;
 		height: 90vh;
-		min-height: 600px;
+		min-height: 400px;
 		max-height: 1200px;
 		margin: 0 auto;
 		display: flex;
@@ -242,13 +242,24 @@
 	}
 
 	@media (max-width: 1024px) {
-		.table-surface-outer { width: 90%; height: 60%; }
+		.table-surface-outer { width: 90%; height: 65%; }
 		.video-tile-container { width: 130px; height: 98px; }
 	}
 
 	@media (max-width: 768px) {
-		.table-surface-outer { width: 95%; height: 50%; }
+		.table-surface-outer { width: 95%; height: 60%; }
 		.video-tile-container { width: 100px; height: 75px; }
 		.player-info-bubble { min-width: 80px; padding: 0.2rem 0.5rem; }
+	}
+
+	@media (max-width: 480px) {
+		.table-surface-outer { 
+			width: 98%; 
+			height: 65%; 
+			transform: rotateX(5deg); 
+		}
+		.video-tile-container { width: 80px; height: 60px; border-radius: 10px; }
+		.player-info-bubble { font-size: 0.6rem; min-width: 60px; padding: 0.15rem 0.3rem; }
+		.game-table { min-height: 500px; height: 80vh; }
 	}
 </style>
