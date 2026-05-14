@@ -10,6 +10,8 @@
 		localStream: MediaStream | null;
 		audioEnabled: boolean;
 		videoEnabled: boolean;
+		/** If true, this player joined without video — show placeholder for self */
+		noVideo?: boolean;
 		children?: any;
 	}
 
@@ -20,6 +22,7 @@
 		localStream, 
 		audioEnabled = $bindable(true),
 		videoEnabled = $bindable(true),
+		noVideo = false,
 		children 
 	}: Props = $props();
 
@@ -31,6 +34,9 @@
 		background: '#0f172a',
 		text: '#f8fafc'
 	});
+
+	/** Host-controlled video blackout — hides all streams globally */
+	const videoMode = $derived(state.videoMode ?? 'on');
 
 	const players = $derived(Object.values(state.players).sort((a, b) => a.joinedAt - b.joinedAt));
 	
@@ -48,6 +54,12 @@
 		if (state.phase !== 'playing') return false;
 		const data = state.game.data as any;
 		return data?.sleepingPeers?.includes(peerId) ?? false;
+	}
+
+	function getStream(playerId: string): MediaStream | null {
+		if (videoMode === 'off') return null;
+		if (playerId === selfId) return noVideo ? null : localStream;
+		return remoteStreams.get(playerId)?.stream || null;
 	}
 </script>
 
@@ -70,7 +82,7 @@
 
 	{#each players as player, i (player.id)}
 		{@const pos = positions[i]}
-		{@const stream = player.id === selfId ? localStream : remoteStreams.get(player.id)?.stream || null}
+		{@const stream = getStream(player.id)}
 		<div 
 			class="player-seat" 
 			class:is-self={player.id === selfId}

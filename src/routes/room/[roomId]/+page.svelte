@@ -25,7 +25,6 @@
 		isHost,
 		hostPeerId,
 		roomMeta,
-		roomMeta,
 		saveSession,
 		clearSession,
 		restoreSession
@@ -57,7 +56,8 @@
 	let localStream = $state<MediaStream | null>(null);
 	let audioEnabled = $state(true);
 	let videoEnabled = $state(true);
-
+	/** Player-local opt-out: join without requesting camera/mic at all */
+	let noVideo = $state(false);
 
 	// Handshake state
 	let handshakeInterval: any = null;
@@ -259,7 +259,13 @@
 		}
 	}
 
-
+	// ─── Host: Toggle global video mode ────────────────────────────────────────
+	function handleToggleVideoMode() {
+		const current = $gameState.videoMode ?? 'on';
+		const next = current === 'on' ? 'off' : 'on';
+		const newState = applyAction({ type: 'SET_VIDEO_MODE', payload: { mode: next } });
+		broadcastStateSync(newState);
+	}
 </script>
 
 <svelte:head>
@@ -306,6 +312,7 @@
 				bind:localStream
 				bind:audioEnabled
 				bind:videoEnabled
+				{noVideo}
 			/>
 
 			{#if !hasJoined}
@@ -316,6 +323,15 @@
 					<div class="player-preview">
 						<span class="preview-name">Joining as <strong>{$playerName}</strong></span>
 					</div>
+
+					<!-- No-video option -->
+					<label class="no-video-toggle">
+						<input type="checkbox" bind:checked={noVideo} />
+						<span class="no-video-label">
+							🎥 Join without camera/mic
+							<small>Useful if you're on a shared call (e.g. Google Meet)</small>
+						</span>
+					</label>
 
 					<button 
 						class="btn-primary join-btn-large" 
@@ -404,6 +420,22 @@
 						>
 							{!$gameState.game.id ? 'Pick a game first' : $playerList.length < (getGame($gameState.game.id!)?.minPlayers ?? 2) ? `Waiting for players… (${$playerList.length}/${getGame($gameState.game.id!)?.minPlayers})` : 'Start Game →'}
 						</button>
+
+						<!-- Video mode toggle -->
+						<div class="video-mode-row">
+							<span class="video-mode-label">
+								{$gameState.videoMode === 'off' ? '📵 Video feeds hidden' : '🎥 Video feeds visible'}
+							</span>
+							<button
+								class="btn-ghost video-toggle-btn"
+								class:active={$gameState.videoMode === 'on'}
+								id="btn-toggle-video-mode"
+								onclick={handleToggleVideoMode}
+								title={$gameState.videoMode === 'on' ? 'Hide all video feeds' : 'Show all video feeds'}
+							>
+								{$gameState.videoMode === 'on' ? 'Turn Off Videos' : 'Turn On Videos'}
+							</button>
+						</div>
 					</section>
 				{:else}
 					<!-- Non-host waiting view -->
@@ -423,6 +455,7 @@
 				selfId={selfPeerId} 
 				{remoteStreams} 
 				{localStream}
+				{noVideo}
 				bind:audioEnabled
 				bind:videoEnabled
 			>
@@ -750,5 +783,80 @@
 		font-size: 1rem;
 		font-weight: 700;
 		color: #fff;
+	}
+
+	/* No-video join toggle */
+	.no-video-toggle {
+		display: flex;
+		align-items: flex-start;
+		gap: 0.75rem;
+		cursor: pointer;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		border-radius: var(--radius-sm);
+		padding: 0.75rem 1rem;
+		text-align: left;
+		transition: background 0.15s ease, border-color 0.15s ease;
+	}
+
+	.no-video-toggle:hover {
+		background: rgba(124, 106, 247, 0.08);
+		border-color: rgba(124, 106, 247, 0.3);
+	}
+
+	.no-video-toggle input[type="checkbox"] {
+		margin-top: 0.15rem;
+		accent-color: var(--color-accent);
+		flex-shrink: 0;
+		width: 1rem;
+		height: 1rem;
+	}
+
+	.no-video-label {
+		font-size: 0.875rem;
+		color: var(--color-text);
+		line-height: 1.4;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+	}
+
+	.no-video-label small {
+		font-size: 0.75rem;
+		color: var(--color-text-muted);
+	}
+
+	/* Host video-mode control row */
+	.video-mode-row {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 0.75rem;
+		padding: 0.65rem 0.85rem;
+		background: rgba(255, 255, 255, 0.04);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		border-radius: var(--radius-sm);
+	}
+
+	.video-mode-label {
+		font-size: 0.82rem;
+		color: var(--color-text-muted);
+	}
+
+	.video-toggle-btn {
+		font-size: 0.78rem;
+		padding: 0.35rem 0.75rem;
+		color: var(--color-accent-light);
+		border-color: rgba(124, 106, 247, 0.3);
+		white-space: nowrap;
+	}
+
+	.video-toggle-btn:not(.active) {
+		color: var(--color-danger);
+		border-color: rgba(240, 96, 96, 0.3);
+	}
+
+	.video-toggle-btn:not(.active):hover {
+		background: rgba(240, 96, 96, 0.1) !important;
 	}
 </style>

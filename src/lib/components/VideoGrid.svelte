@@ -12,6 +12,8 @@
 		remoteStreams?: Map<string, { stream: MediaStream, status: 'connecting' | 'live' }>;
 		audioEnabled?: boolean;
 		videoEnabled?: boolean;
+		/** If true, skip getUserMedia entirely (useful when hosting via external call like GMeet) */
+		noVideo?: boolean;
 	}
 
 	let { 
@@ -21,41 +23,47 @@
 		localStream = $bindable(null),
 		remoteStreams = $bindable(new Map()),
 		audioEnabled = $bindable(true),
-		videoEnabled = $bindable(true)
+		videoEnabled = $bindable(true),
+		noVideo = false
 	}: Props = $props();
 
 	let videoError = $state(false);
 	let cleanupFns: Array<() => void> = [];
 
+	// Whether video should be shown at all (respects both the local opt-out and the host's global toggle)
+	const videoMode = $derived(gameState.videoMode ?? 'on');
+
 	onMount(async () => {
-		try {
-			const constraints = {
-				video: { 
-					width: { ideal: 320 }, 
-					height: { ideal: 240 }, 
-					frameRate: { ideal: 12 }, 
-					facingMode: 'user' 
-				},
-				audio: {
-					echoCancellation: true,
-					noiseSuppression: true
-				}
-			};
-			
+		if (!noVideo) {
 			try {
-				localStream = await navigator.mediaDevices.getUserMedia(constraints);
-			} catch (firstErr) {
-				console.warn('Optimized constraints failed, trying basic...', firstErr);
-				localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+				const constraints = {
+					video: { 
+						width: { ideal: 320 }, 
+						height: { ideal: 240 }, 
+						frameRate: { ideal: 12 }, 
+						facingMode: 'user' 
+					},
+					audio: {
+						echoCancellation: true,
+						noiseSuppression: true
+					}
+				};
+				
+				try {
+					localStream = await navigator.mediaDevices.getUserMedia(constraints);
+				} catch (firstErr) {
+					console.warn('Optimized constraints failed, trying basic...', firstErr);
+					localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+				}
+
+				// Apply initial state
+				localStream.getAudioTracks().forEach((t) => (t.enabled = audioEnabled));
+				localStream.getVideoTracks().forEach((t) => (t.enabled = videoEnabled));
+
+			} catch (e) {
+				console.error('Failed to get user media:', e);
+				videoError = true;
 			}
-
-			// Apply initial state
-			localStream.getAudioTracks().forEach((t) => (t.enabled = audioEnabled));
-			localStream.getVideoTracks().forEach((t) => (t.enabled = videoEnabled));
-
-		} catch (e) {
-			console.error('Failed to get user media:', e);
-			videoError = true;
 		}
 
 		// Handle incoming streams
@@ -108,7 +116,10 @@
 
 {#if mode === 'grid'}
 	<div class="video-grid" class:is-playing={gameState.phase === 'playing'}>
-		{#if videoError}
+		{#if videoMode === 'off'}
+			<div class="video-mode-banner">📵 Video feeds hidden by host</div>
+		{/if}
+		{#if videoError && !noVideo}
 			<div class="video-error-hint">
 				<p>Unable to access camera/mic.</p>
 				<button class="btn-ghost" onclick={() => window.location.reload()}>Retry</button>
@@ -118,7 +129,7 @@
 		<!-- Local User -->
 		<div class="video-container local" class:sleeping={isAsleep(selfId)}>
 			<VideoTile 
-				stream={localStream} 
+				stream={videoMode === 'off' || noVideo ? null : localStream} 
 				peerId={selfId} 
 				isSelf={true} 
 				isAsleep={isAsleep(selfId)} 
@@ -132,12 +143,12 @@
 		{#each Array.from(remoteStreams.entries()) as [peerId, data] (peerId)}
 			<div class="video-container" class:sleeping={isAsleep(peerId)}>
 				<VideoTile 
-					stream={data.stream} 
+					stream={videoMode === 'off' ? null : data.stream} 
 					peerId={peerId} 
 					isAsleep={isAsleep(peerId)} 
 					name={gameState.players[peerId]?.name || 'Unknown'} 
 				/>
-				{#if data.status === 'connecting'}
+				{#if data.status === 'connecting' && videoMode !== 'off'}
 					<div class="video-status">Connecting...</div>
 				{/if}
 			</div>
@@ -183,5 +194,17 @@
 		padding: 0.25rem 0.5rem;
 		border-radius: 4px;
 		font-size: 0.7rem;
+	}
+
+	.video-mode-banner {
+		grid-column: 1 / -1;
+		text-align: center;
+		font-size: 0.78rem;
+		color: rgba(255, 200, 100, 0.8);
+		background: rgba(255, 180, 50, 0.08);
+		border: 1px solid rgba(255, 180, 50, 0.2);
+		border-radius: 8px;
+		padding: 0.5rem 1rem;
+		letter-spacing: 0.02em;
 	}
 </style>

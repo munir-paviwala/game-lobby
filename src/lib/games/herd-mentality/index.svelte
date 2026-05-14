@@ -184,7 +184,6 @@
 			</div>
 
 			<div class="host-actions-overlay">
-			<div class="host-actions-overlay">
 				<button class="btn-primary-cozy" onclick={nextRound}>Next Round →</button>
 				{#if isHost}
 					<button class="btn-ghost-cozy" onclick={backToLobby}>Lobby</button>

@@ -41,6 +41,8 @@ export interface GameState {
 		data: unknown;
 	};
 	version: number; // For reliability: incremented on every action
+	/** Host-controlled video blackout mode. 'off' hides all video tiles for everyone. */
+	videoMode: 'on' | 'off';
 }
 
 // ─── Actions ─────────────────────────────────────────────────────────────────
@@ -53,6 +55,7 @@ export type ActionType =
 	| 'END_GAME'
 	| 'BACK_TO_LOBBY'
 	| 'ADD_POINTS'
+	| 'SET_VIDEO_MODE'
 	| 'GAME_ACTION'; // game-specific sub-actions live in payload.type
 
 export interface Action {

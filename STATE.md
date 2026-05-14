@@ -41,7 +41,9 @@ We have successfully moved from a conceptual architecture to a fully functional 
 ## 🚀 Next Implementation Steps
 
 1.  **UX Polish (Final Touches):**
-    - [ ] **"How to Play" Overlays:** Add cozy, handwritten-style rule cards.
+    - [x] **"How to Play" Overlays:** Added cozy, handwritten-style rule cards.
+    - [x] **"Join without Camera/Mic":** Pre-join checkbox so players on external calls (e.g. GMeet) can skip media devices entirely.
+    - [x] **Host Video Blackout Toggle:** Host can cut all video feeds for everyone mid-game via a `SET_VIDEO_MODE` action broadcast. Affects both the pre-game VideoGrid and the in-game GameTable seats.
     - [ ] **Expansion Sound Effects:** Add "Card Deal" and "Table Thump" sounds.
     - [ ] **Win Animations:** Confetti or themed celebrations (e.g., floating cheese).
 

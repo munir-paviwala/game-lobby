@@ -24,7 +24,8 @@ function createInitialState(): GameState {
 			id: null,
 			data: null
 		},
-		version: 0
+		version: 0,
+		videoMode: 'on'
 	};
 }
 
@@ -109,6 +110,11 @@ export function reduce(state: GameState, action: Action): GameState {
 				newScores[peerId] = (newScores[peerId] ?? 0) + pts;
 			}
 			return { ...state, scores: newScores, version: nextVersion };
+		}
+
+		case 'SET_VIDEO_MODE': {
+			const { mode } = action.payload as { mode: 'on' | 'off' };
+			return { ...state, videoMode: mode, version: nextVersion };
 		}
 
 		case 'GAME_ACTION': {
