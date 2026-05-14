@@ -53,4 +53,9 @@ We have successfully moved from a conceptual architecture to a fully functional 
     - [ ] **PWA / Offline Support:** Finalize Service Worker for flaky connections.
 
 3.  **Future Games:**
-    - [ ] **Phase 7 Idea:** "Two Truths and a Lie" using the new Tabletop slots.
+    - [x] **Phase 7 Idea:** "Just One" - Co-op word guessing game using India edition cards.
+    - [ ] **Phase 8 Idea:** "Two Truths and a Lie" using the new Tabletop slots.
+
+## 📝 Scratchpad / Notebook
+*   **Herd Mentality:** Implemented rotating picker for choosing the prompt (instead of everyone having the ability).
+*   **Just One:** Added `cards.json` and `reducer.ts`. Need to build `index.svelte` and register it in `registry.ts`.

@@ -46,6 +46,9 @@ import { reducer as hmReducer } from './herd-mentality/reducer';
 import CheeseThief from './cheese-thief/index.svelte';
 import { reducer as ctReducer } from './cheese-thief/reducer';
 
+import JustOne from './just-one/index.svelte';
+import { reducer as joReducer } from './just-one/reducer';
+
 // ─── Registry ─────────────────────────────────────────────────────────────────
 
 /**
@@ -85,6 +88,23 @@ const registry: GameModule[] = [
 		},
 		component: CheeseThief as unknown as GameModule['component'],
 		reducer: ctReducer
+	},
+	{
+		id: 'just-one',
+		name: 'Just One',
+		description: 'A cooperative party game where you write one-word clues to help the guesser!',
+		emoji: '☝️',
+		minPlayers: 3,
+		maxPlayers: 7,
+		theme: {
+			primary: '#1976D2',      // Blue
+			secondary: '#BBDEFB',    // Light Blue
+			accent: '#FFC107',       // Amber
+			background: '#F0F4C3',   // Light Lime
+			text: '#212121'
+		},
+		component: JustOne as unknown as GameModule['component'],
+		reducer: joReducer
 	}
 ];
 

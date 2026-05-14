@@ -13,14 +13,35 @@
 
 	let { state: gameState, isHost, selfId, onAction }: Props = $props();
 
-	const data = $derived((gameState.game.data as HMData) || { phase: 'picking', round: 1, prompt: null, answers: {}, majorityAnswer: null });
+	const data = $derived((gameState.game.data as HMData) || { phase: 'picking', round: 1, prompt: null, answers: {}, majorityAnswer: null, playerOrder: [], pickerIndex: 0 });
 	const players = $derived(Object.keys(gameState.players));
 
-	// All players: Picking phase
+	// ─── Rotating Picker ──────────────────────────────────────────────────────
+	// Seed the player order on first load (host only, once per game)
+	let hasInited = $state(false);
+	$effect(() => {
+		if (isHost && !hasInited && data.phase === 'picking' && data.playerOrder.length === 0 && players.length > 0) {
+			hasInited = true;
+			onAction({ type: 'GAME_ACTION', payload: { type: 'HM_INIT', playerOrder: [...players] } });
+		}
+	});
+
+	const currentPickerId = $derived(
+		data.playerOrder.length > 0
+			? data.playerOrder[data.pickerIndex % data.playerOrder.length]
+			: players[0] ?? ''
+	);
+	const currentPickerName = $derived(gameState.players[currentPickerId]?.name ?? 'Someone');
+	const iAmPicker = $derived(selfId === currentPickerId);
+
+	// Prompt options — only generated for the picker
 	let localPrompts = $state<string[]>([]);
 	$effect(() => {
-		if (data.phase === 'picking' && localPrompts.length === 0) {
+		if (data.phase === 'picking' && iAmPicker && localPrompts.length === 0) {
 			localPrompts = getRandomPrompts(3);
+		}
+		if (data.phase !== 'picking') {
+			localPrompts = [];
 		}
 	});
 
@@ -39,10 +60,9 @@
 		onAction({ type: 'GAME_ACTION', payload: { type: 'HM_SUBMIT_ANSWER', answer: myAnswer.trim() } });
 	}
 
-	// Host: Reveal
+	// Reveal (any player can trigger — democratized)
 	function revealAnswers() {
 		playDing();
-		// Calculate majority
 		const counts: Record<string, number> = {};
 		for (const ans of Object.values(data.answers)) {
 			const normalized = ans.toLowerCase().trim();
@@ -58,13 +78,8 @@
 			}
 		}
 
-		// It's possible there's a tie, but for simplicity we just take the first max.
-		// If majority count is < 2, there is no herd!
-		if (max < 2) {
-			majority = null;
-		}
+		if (max < 2) majority = null;
 
-		// Award points
 		const points: Record<string, number> = {};
 		if (majority !== null) {
 			for (const [peerId, ans] of Object.entries(data.answers)) {
@@ -95,12 +110,22 @@
 
 	{#if data.phase === 'picking'}
 		<div class="picking-view" in:fade>
-			<h3 class="table-label">Pick a prompt to start the round</h3>
-			<div class="prompts">
-				{#each localPrompts as p}
-					<button class="paper-btn prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
-				{/each}
-			</div>
+			{#if iAmPicker}
+				<h3 class="table-label">✨ Your turn — pick a prompt!</h3>
+				<div class="prompts">
+					{#each localPrompts as p}
+						<button class="paper-btn prompt-btn" onclick={() => pickPrompt(p)}>{p}</button>
+					{/each}
+				</div>
+			{:else}
+				<div class="waiting-for-picker">
+					<div class="picker-avatar">{currentPickerName.charAt(0).toUpperCase()}</div>
+					<p class="picker-name-label"><strong>{currentPickerName}</strong> is picking a prompt…</p>
+					<div class="picker-dots">
+						<span></span><span></span><span></span>
+					</div>
+				</div>
+			{/if}
 		</div>
 
 	{:else if data.phase === 'answering'}
@@ -229,6 +254,55 @@
 		font-size: 0.8rem;
 		letter-spacing: 0.1em;
 		margin-bottom: 1rem;
+	}
+
+	.waiting-for-picker {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1rem;
+		padding: 2rem;
+	}
+
+	.picker-avatar {
+		width: 64px;
+		height: 64px;
+		border-radius: 50%;
+		background: var(--accent);
+		color: #fff;
+		font-size: 1.8rem;
+		font-weight: 800;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+	}
+
+	.picker-name-label {
+		font-size: 1rem;
+		color: var(--primary);
+		text-align: center;
+	}
+
+	.picker-dots {
+		display: flex;
+		gap: 6px;
+	}
+
+	.picker-dots span {
+		width: 8px;
+		height: 8px;
+		border-radius: 50%;
+		background: var(--accent);
+		animation: dot-pulse 1.2s infinite ease-in-out;
+	}
+
+	.picker-dots span:nth-child(2) { animation-delay: 0.2s; }
+	.picker-dots span:nth-child(3) { animation-delay: 0.4s; }
+
+	@keyframes dot-pulse {
+		0%, 100% { opacity: 0.3; transform: scale(0.8); }
+		50% { opacity: 1; transform: scale(1); }
 	}
 
 	.main-prompt {
